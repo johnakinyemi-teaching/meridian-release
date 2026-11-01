@@ -46,7 +46,7 @@ jobs:
         run: make -C ingest test
 
       - name: Reporting tests
-        run: python -m pytest reporting/reporting/tests -q
+        run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
 
       - name: ui-next typecheck
         working-directory: ui-next

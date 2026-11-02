@@ -2,6 +2,20 @@
 
 Provincial agri-environmental monitoring and yield forecasting platform.
 
+## Building and testing today
+
+The sections below describe the 2015 snapshot and are kept for history. For the code in this repository as it stands, run these from the repository root:
+
+make all builds the model, the ingest collector and the services.
+
+make -C ingest test runs the ingest acceptance test.
+
+cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q runs the reporting tests.
+
+cd ui-next && npm ci && npm run typecheck typechecks the 2026 console. Its npm test script is a stub that runs no tests yet.
+
+The pipeline steps and the GUELPH 2025 oracle check (5.951 t/ha) are in .github/workflows/meridian.yml, which runs on every pull request.
+
 ## Architecture
 
 Meridian is a three-tier application:

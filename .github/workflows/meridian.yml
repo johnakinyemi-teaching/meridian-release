@@ -1,0 +1,93 @@
+name: meridian
+
+# Build every subsystem, run the existing test suites, run the pipeline, and
+# check the oracle value. Strict about the oracle; ui-next's npm test is a stub,
+# so the workflow runs its typecheck instead.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fortran toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran
+          gfortran --version | head -1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---- build -------------------------------------------------------
+      - name: Build subsystems
+        run: make all
+
+      # ---- the tests that exist ----------------------------------------
+      - name: Ingest acceptance test
+        run: make -C ingest test
+
+      - name: Reporting tests
+        run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
+
+      - name: ui-next typecheck
+        working-directory: ui-next
+        run: |
+          npm ci
+          npm run typecheck
+
+      # ui-next's `npm test` is a stub that prints a TODO and exits 0, so it is
+      # not run here: a command that exits without running anything must not be
+      # able to turn this job green. When Frontier stands the runner up, replace
+      # this step with `npm test`.
+
+      # ---- the pipeline, and the oracle --------------------------------
+      - name: Run the pipeline
+        run: |
+          mkdir -p data
+          python3 tools/gen_packets.py data/spool_2025.bin
+          ./ingest/mrd_ingest data/spool_2025.bin data/meridian.db | tee ingest.log
+          python3 analytics/run_forecast.py --db data/meridian.db | tee forecast.log
+
+      - name: Oracle check
+        run: |
+          echo "--- ingest"
+          grep -E 'accepted=[0-9]+' ingest.log || true
+          echo "--- forecast"
+          grep -E '^GUELPH' forecast.log || true
+          if grep -Eq 'GUELPH +2025 +yield= *5\.951' forecast.log; then
+            echo "ORACLE OK: GUELPH 2025 = 5.951 t/ha"
+          else
+            echo "ORACLE FAILED: GUELPH 2025 is not 5.951 t/ha."
+            echo "If your ticket is supposed to change this number, say so in the"
+            echo "pull request and ask for the oracle value to be updated."
+            exit 1
+          fi
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-logs
+          path: |
+            ingest.log
+            forecast.log
+          if-no-files-found: ignore

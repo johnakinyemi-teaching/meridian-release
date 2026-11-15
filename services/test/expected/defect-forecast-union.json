@@ -1,0 +1,7 @@
+[{"stnid":"GUELPH","year":2024,"yield_t":14.1999999999999992,"ndays":100,"model":"GUELPH","run_at":"GUELPH"},
+{"stnid":"GUELPH","year":2025,"yield_t":13.5099999999999997,"ndays":101,"model":"GUELPH","run_at":"GUELPH"},
+{"stnid":"GUELPH","year":2025,"yield_t":15.6600000000000001,"ndays":100,"model":"GUELPH","run_at":"GUELPH"},
+{"stnid":"GUELPH","year":2025,"yield_t":26.9499999999999992,"ndays":224,"model":"GUELPH","run_at":"GUELPH"},
+{"stnid":"KITCHNER","year":2025,"yield_t":13.4299999999999997,"ndays":271,"model":"KITCHNER","run_at":"KITCHNER"},
+{"stnid":"KITCHNER","year":2025,"yield_t":16.0199999999999995,"ndays":100,"model":"KITCHNER","run_at":"KITCHNER"},
+{"stnid":"MILTON","year":2025,"yield_t":15.0999999999999996,"ndays":100,"model":"MILTON","run_at":"MILTON"}]

@@ -90,9 +90,13 @@ public final class ForecastCache {
      * given year lands, so the next read reflects the run straight away
      * rather than waiting out the TTL. Ops calls this from the admin tool
      * after a manual backfill (see AdminCli "evict").
+     *
+     * The year says which run prompted the eviction and is not part of
+     * the key. There is one entry per station, aggregated across all of
+     * its runs, so a new run for any year puts it out of date (MRD-247).
      */
     public void invalidate(String station, int year) {
-        entries.remove(key(station, year));
+        entries.remove(key(station));
     }
 
     /** Drops every cached summary. */
@@ -127,14 +131,8 @@ public final class ForecastCache {
     }
 
     // The summary is aggregated across every run for the station, so the
-    // live entry is keyed by the station alone.
+    // entry is keyed by the station alone, for reads and evictions alike.
     private static String key(String station) {
         return Strings.normStation(station);
-    }
-
-    // Eviction is requested per run, which the tracker records as a
-    // (station, year) pair, so the key is built from both.
-    private static String key(String station, int year) {
-        return Strings.normStation(station) + "#" + year;
     }
 }

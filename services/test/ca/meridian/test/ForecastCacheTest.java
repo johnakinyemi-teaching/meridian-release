@@ -16,9 +16,10 @@ import java.nio.file.Path;
  * backfill writes a new run, ops run "evict" so the summary catches up
  * without waiting the TTL out.
  *
- * Two things stop that working today, and both are pinned here as they
- * stand: the cache is asked to remove a key it never stores, and the
- * admin tool is a separate process whose cache is not the server's.
+ * Two things stopped that working. The cache was asked to remove a key
+ * it never stored: that is fixed, and checked here. The admin tool is
+ * also a separate process whose cache is not the server's: that is
+ * still pinned here as it stands.
  */
 final class ForecastCacheTest {
 
@@ -89,9 +90,9 @@ final class ForecastCacheTest {
 
             Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2026");
             c.same("evict GUELPH 2026: exit status", 0, evict.exit);
-            c.same("MRD-247 defect: evict reports the entry it failed to remove",
-                    "evicted v2 summary for GUELPH 2026 (entries now 1)\n", evict.out);
-            c.recorded("MRD-247 defect: after evict the server's summary still says two",
+            c.same("evict removes the entry from its own cache, and says so",
+                    "evicted v2 summary for GUELPH 2026 (entries now 0)\n", evict.out);
+            c.recorded("MRD-247 defect: the server is another process, and its summary still says two",
                     api.get(V2_GUELPH), "v2-forecast-guelph-stale.json");
         }
     }
@@ -119,10 +120,20 @@ final class ForecastCacheTest {
 
         store.sql(NEW_RUN);
         cache.invalidate("GUELPH", 2026);
-        c.same("MRD-247 defect: invalidate(GUELPH, 2026) removes nothing", 2, cache.size());
-        c.same("MRD-247 defect: so GUELPH's next read is the old summary", 2, cache.summary("GUELPH").runs);
+        c.same("invalidate(GUELPH, 2026) removes GUELPH's entry and no other", 1, cache.size());
         c.isTrue("KITCHNER's entry is still the cached object",
                 cache.summary("KITCHNER") == kitchner, "a different object came back");
+        ForecastCache.Summary reloaded = cache.summary("GUELPH");
+        c.same("GUELPH's next read sees the new run: runs", 3, reloaded.runs);
+        c.same("GUELPH's next read sees the new run: latest run", "2027-10-28T03:02:11", reloaded.latestRun);
+        c.same("GUELPH's next read sees the new run: last year", 2026, reloaded.lastYear);
+        c.same("both stations are held again", 2, cache.size());
+
+        cache.invalidate(" guelph ", 2024);
+        c.same("the year plays no part, nor case or spaces: GUELPH is evicted again", 1, cache.size());
+        cache.invalidate("NOWHERE", 2026);
+        c.same("evicting a station that is not held changes nothing", 1, cache.size());
+        cache.summary("GUELPH");
 
         cache.clear();
         c.same("clear() drops every entry", 0, cache.size());
@@ -135,17 +146,17 @@ final class ForecastCacheTest {
 
         Admin.Run lower = Admin.run(store, "evict", "guelph", "2025");
         c.same("the station is upper-cased",
-                "evicted v2 summary for GUELPH 2025 (entries now 1)\n", lower.out);
+                "evicted v2 summary for GUELPH 2025 (entries now 0)\n", lower.out);
 
         Admin.Run unknown = Admin.run(store, "evict", "NOWHERE", "2025");
         c.same("a station with no runs is accepted: exit status", 0, unknown.exit);
         c.same("a station with no runs is accepted: what it prints",
-                "evicted v2 summary for NOWHERE 2025 (entries now 1)\n", unknown.out);
+                "evicted v2 summary for NOWHERE 2025 (entries now 0)\n", unknown.out);
 
         Admin.Run notAnId = Admin.run(store, "evict", "../x", "2025");
         c.same("text that is not a station id is accepted too: exit status", 0, notAnId.exit);
         c.same("text that is not a station id is accepted too: what it prints",
-                "evicted v2 summary for ../X 2025 (entries now 1)\n", notAnId.out);
+                "evicted v2 summary for ../X 2025 (entries now 0)\n", notAnId.out);
 
         Admin.Run badYear = Admin.run(store, "evict", "GUELPH", "abc");
         c.same("a year that is not a number: exit status", 1, badYear.exit);

@@ -16,8 +16,8 @@ import java.nio.file.Paths;
  * these two routes pass sqlite3's own JSON through, so the text is the
  * contract (the portal depends on "their exact JSON", ApiServer.java).
  *
- * The last section pins the MRD-166 defect as it stands. Those checks
- * describe behaviour that is wrong and is expected to change with the fix.
+ * The quote-in-station section is MRD-166 itself: requests that used to be
+ * run as SQL and now only look a station up by that text.
  */
 final class ForecastSeriesTest {
 
@@ -32,7 +32,7 @@ final class ForecastSeriesTest {
             forecast(c, api);
             series(c, api);
             neighbours(c, api);
-            injectionAsItStandsToday(c, api, store);
+            quoteInStationIsData(c, api, store);
         }
         brokenStores(c, testDir);
     }
@@ -143,61 +143,83 @@ final class ForecastSeriesTest {
     }
 
     /**
-     * MRD-166 as it behaves today. A raw single quote in the station ends
-     * the SQL string literal the handler pastes it into, and whatever
-     * follows is run as SQL.
+     * MRD-166. A raw single quote in the station used to end the SQL string
+     * literal the handler pasted it into, and whatever followed was run as
+     * SQL: these same requests answered 500 sqlite3 exited 1, returned every
+     * station's rows, returned rows of another table, read and wrote files
+     * on the server, and deleted every row of a table. The station is now a
+     * bound value, so each of them simply asks for a station with that odd
+     * id.
      */
-    private static void injectionAsItStandsToday(Checks c, Http api, Store store) throws IOException {
-        c.section("MRD-166 defect, pinned as it stands");
+    private static void quoteInStationIsData(Checks c, Http api, Store store) throws IOException {
+        c.section("MRD-166: a quote in the station is data, not SQL");
 
-        c.error("forecast, unmatched quote GU'ELPH: the SQL no longer parses",
-                api.get("/api/forecast?station=GU'ELPH"), 500, "sqlite3 exited 1");
-        c.error("series, unmatched quote GU'ELPH: the SQL no longer parses",
-                api.get("/api/series?station=GU'ELPH&year=2025"), 500, "sqlite3 exited 1");
+        c.json("forecast, unmatched quote GU'ELPH: no such station",
+                api.get("/api/forecast?station=GU'ELPH"), "[]");
+        c.json("series, unmatched quote GU'ELPH: no such station",
+                api.get("/api/series?station=GU'ELPH&year=2025"), "[]");
 
-        c.recorded("forecast, X'OR'1'='1: every station's runs come back",
-                api.get("/api/forecast?station=X'OR'1'='1"), ALL_FORECASTS);
-        c.recorded("series, X'OR'1'='1: every station's 2025 days come back",
-                api.get("/api/series?station=X'OR'1'='1&year=2025"), "defect-series-or.json");
+        c.json("forecast, X'OR'1'='1: no other station's runs come back",
+                api.get("/api/forecast?station=X'OR'1'='1"), "[]");
+        c.json("series, X'OR'1'='1: no other station's days come back",
+                api.get("/api/series?station=X'OR'1'='1&year=2025"), "[]");
 
-        c.recorded("forecast, UNION SELECT: rows of the reading table come back",
+        c.json("forecast, UNION SELECT: the reading table is not read",
                 api.get("/api/forecast?station=X'UNION/**/SELECT/**/stnid,year,tmax,doy,stnid,stnid"
                         + "/**/FROM/**/reading--"),
-                "defect-forecast-union.json");
+                "[]");
 
-        // The sqlite3 tool also has readfile() and writefile(), so the same
-        // quote reads and writes files on the server as the service's user.
+        // The sqlite3 tool has readfile() and writefile(), so the same quote
+        // used to read and write files on the server as the service's user.
         Path secret = Paths.get(store.path()).resolveSibling("secret.txt");
         Files.write(secret, "meridian-test-secret".getBytes(StandardCharsets.UTF_8));
-        Http.Response read = api.get("/api/forecast?station=X'/**/UNION/**/SELECT/**/readfile('"
-                + secret + "'),1,1,1,1,1--");
-        c.isTrue("forecast, UNION SELECT readfile(..): a file on the server comes back in the body",
-                read.status == 200 && read.body.contains("meridian-test-secret"),
-                read.status + " " + read.body);
+        c.json("forecast, UNION SELECT readfile(..): the file is not read",
+                api.get("/api/forecast?station=X'/**/UNION/**/SELECT/**/readfile('"
+                        + secret + "'),1,1,1,1,1--"),
+                "[]");
 
         Path planted = Paths.get(store.path()).resolveSibling("planted.txt");
-        Http.Response write = api.get("/api/forecast?station=x';SELECT/**/writefile('"
-                + planted + "','over-http');--");
-        c.isTrue("forecast, ;SELECT writefile(..): a file is written on the server",
-                write.status == 200 && Files.exists(planted)
-                        && "over-http".equals(new String(Files.readAllBytes(planted), StandardCharsets.UTF_8)),
-                write.status + " " + write.body + " file exists: " + Files.exists(planted));
+        c.json("forecast, ;SELECT writefile(..) answers 200 []",
+                api.get("/api/forecast?station=x';SELECT/**/writefile('"
+                        + planted + "','over-http');--"),
+                "[]");
+        c.isTrue("and no file was written", !Files.exists(planted), planted + " exists");
 
-        // sqlite3 runs every statement it is handed, so a second statement
-        // after the quote is executed too. Done on a copy: it destroys data.
+        // A second statement after the quote used to be executed as well.
+        // Still done on a copy, so a regression cannot damage the store
+        // the other tests share.
         Store victim = store.copy();
         try (Http onVictim = Http.serve(victim)) {
             c.same("a copy of the store starts with 4 forecast rows", 4, victim.count("forecast"));
             c.json("forecast, x';DELETE FROM forecast;-- answers 200 []",
                     onVictim.get("/api/forecast?station=x';DELETE/**/FROM/**/forecast;--"), "[]");
-            c.same("and that GET deleted every forecast row", 0, victim.count("forecast"));
+            c.same("and that GET deleted nothing", 4, victim.count("forecast"));
 
             c.same("the copy starts with 7 daily rows", 7, victim.count("forecast_daily"));
             c.json("series, x';DELETE FROM forecast_daily;-- answers 200 []",
                     onVictim.get("/api/series?station=x';DELETE/**/FROM/**/forecast_daily;--&year=2025"), "[]");
-            c.same("and that GET deleted every daily row", 0, victim.count("forecast_daily"));
+            c.same("and that GET deleted nothing", 7, victim.count("forecast_daily"));
         }
         c.same("the store the other tests use is untouched", 4, store.count("forecast"));
+
+        // The same claim the other way round: when a station really is
+        // called X'OR'1'='1, that request finds its rows and only its rows.
+        Store odd = store.copy();
+        odd.sql("INSERT INTO forecast VALUES"
+                + " ('X''OR''1''=''1', 2025, '2026-10-27T14:28:24', 4.5, 174, 'cropmod V2.3')");
+        odd.sql("INSERT INTO forecast_daily VALUES"
+                + " ('X''OR''1''=''1', 2025, 100, 50.5, 2.5, 0.0, 0.0, 0.0)");
+        try (Http onOdd = Http.serve(odd)) {
+            c.json("forecast: a station whose id is X'OR'1'='1 is found, alone",
+                    onOdd.get("/api/forecast?station=X'OR'1'='1"),
+                    "[{\"stnid\":\"X'OR'1'='1\",\"year\":2025,\"yield_t\":4.5,\"ndays\":174,"
+                            + "\"model\":\"cropmod V2.3\",\"run_at\":\"2026-10-27T14:28:24\"}]");
+            c.json("series: a station whose id is X'OR'1'='1 is found, alone",
+                    onOdd.get("/api/series?station=X'OR'1'='1&year=2025"),
+                    "[{\"doy\":100,\"sw\":50.5,\"et\":2.5,\"drain\":0.0,\"biom\":0.0,\"lai\":0.0}]");
+            c.recorded("and GUELPH's answer does not change because that row exists",
+                    onOdd.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
+        }
     }
 
     /** What the two routes answer when the store itself is unusable. */

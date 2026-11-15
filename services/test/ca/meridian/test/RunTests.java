@@ -19,6 +19,7 @@ public final class RunTests {
         int status;
         try {
             ForecastSeriesTest.run(checks, testDir);
+            DbBindTest.run(checks, testDir);
             status = checks.finish();
         } catch (Throwable broken) {
             // A test that cannot run is a failure, not a skip.

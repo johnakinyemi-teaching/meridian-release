@@ -1,0 +1,4 @@
+[
+  { "stnid": "GUELPH", "year": 2025, "yield_t": 5.951, "ndays": 174, "model": "cropmod V2.3", "run_at": "2026-11-16T22:21:35" },
+  { "stnid": "GUELPH", "year": 2023, "yield_t": 4.4021, "ndays": 170, "model": "cropmod V2.3", "run_at": "2026-01-15T09:00:00" }
+]

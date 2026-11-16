@@ -35,6 +35,11 @@ public final class Db {
         this.dbPath = dbPath;
     }
 
+    /** The store file this talks to. Used to find files that live beside it. */
+    public String path() {
+        return dbPath;
+    }
+
     /** Runs a query and returns its result as a JSON array string. */
     public String queryJson(String sql) throws IOException {
         return queryJson(sql, NO_PARAMS);

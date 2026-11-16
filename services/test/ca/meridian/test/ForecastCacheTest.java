@@ -5,7 +5,12 @@ import ca.meridian.db.DbClient;
 import ca.meridian.db.ForecastCache;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Characterization tests for the v2 forecast-summary cache and the admin
@@ -16,10 +21,10 @@ import java.nio.file.Path;
  * backfill writes a new run, ops run "evict" so the summary catches up
  * without waiting the TTL out.
  *
- * Two things stopped that working. The cache was asked to remove a key
- * it never stored: that is fixed, and checked here. The admin tool is
- * also a separate process whose cache is not the server's: that is
- * still pinned here as it stands.
+ * Two things stopped that working, and both are fixed and checked here.
+ * The cache was asked to remove a key it never stored. And the admin tool
+ * is a separate process whose cache is not the server's, so evict now
+ * also leaves a note beside the store that the running server reads.
  */
 final class ForecastCacheTest {
 
@@ -37,6 +42,9 @@ final class ForecastCacheTest {
         v2Forecast(c, fixture);
         otherAdminCommands(c, fixture);
         staleAfterABackfill(c, fixture.copy());
+        evictIsPerStation(c, fixture.copy());
+        anUnreadableTokenFallsBackToTtl(c, fixture.copy());
+        theMarksDirectory(c, fixture.copy());
         theCacheItself(c, fixture.copy());
         evictArguments(c, fixture.copy());
         ttlStillRefreshes(c, fixture.copy());
@@ -92,8 +100,87 @@ final class ForecastCacheTest {
             c.same("evict GUELPH 2026: exit status", 0, evict.exit);
             c.same("evict removes the entry from its own cache, and says so",
                     "evicted v2 summary for GUELPH 2026 (entries now 0)\n", evict.out);
-            c.recorded("MRD-247 defect: the server is another process, and its summary still says two",
-                    api.get(V2_GUELPH), "v2-forecast-guelph-stale.json");
+            c.recorded("after evict the running server, a separate process, now shows three",
+                    api.get(V2_GUELPH), "v2-forecast-guelph-fresh.json");
+            c.recorded("and it stays fresh on the next read",
+                    api.get(V2_GUELPH), "v2-forecast-guelph-fresh.json");
+        }
+    }
+
+    /**
+     * Eviction reaches only the station it names. Evicting one station must
+     * not refresh another's cached summary.
+     */
+    private static void evictIsPerStation(Checks c, Store store) throws IOException {
+        c.section("evict refreshes only the station it names");
+        try (Http api = Http.serve(store)) {
+            c.recorded("GUELPH cached at two runs", api.get(V2_GUELPH), "v2-forecast-guelph.json");
+            c.recorded("KITCHNER cached at one run",
+                    api.get("/api/v2/forecast?station=KITCHNER"), "v2-forecast-kitchner.json");
+
+            store.sql(NEW_RUN); // GUELPH 2026
+            store.sql("INSERT INTO forecast VALUES"
+                    + " ('KITCHNER', 2026, '2027-10-28T03:02:11', 6.3, 170, 'cropmod V2.3')");
+
+            Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2026");
+            c.same("evict GUELPH only: exit status", 0, evict.exit);
+
+            c.recorded("GUELPH, evicted, now shows three",
+                    api.get(V2_GUELPH), "v2-forecast-guelph-fresh.json");
+            c.recorded("KITCHNER, not evicted: its new row is live but its summary stays cached at one",
+                    api.get("/api/v2/forecast?station=KITCHNER"), "v2-forecast-kitchner-stale.json");
+        }
+    }
+
+    /**
+     * A token that cannot be read must not break the endpoint. If the mark
+     * path is a directory, the read fails; the summary is served fresh and
+     * uncached rather than turning into a 500.
+     */
+    private static void anUnreadableTokenFallsBackToTtl(Checks c, Store store) throws IOException {
+        c.section("an unreadable eviction token falls back, it does not 500");
+        Files.createDirectories(Paths.get(store.path() + ".evict", "GUELPH"));
+        try (Http api = Http.serve(store)) {
+            c.recorded("the token path is a directory, yet GUELPH still answers 200",
+                    api.get(V2_GUELPH), "v2-forecast-guelph.json");
+            store.sql(NEW_RUN);
+            c.recorded("and with the read uncached, a new run shows up at once",
+                    api.get(V2_GUELPH), "v2-forecast-guelph-fresh.json");
+        }
+    }
+
+    /** The eviction directory keeps itself out of git, and rejects non-ids. */
+    private static void theMarksDirectory(Checks c, Store store) throws IOException {
+        c.section("the eviction directory");
+        Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2025");
+        c.same("evict writes a note: exit status", 0, evict.exit);
+        Path dir = Paths.get(store.path() + ".evict");
+        c.isTrue("a note was written for GUELPH", Files.isRegularFile(dir.resolve("GUELPH")),
+                "no file at " + dir.resolve("GUELPH"));
+        Path ignore = dir.resolve(".gitignore");
+        c.isTrue("the directory ignores itself in git: a .gitignore holding *",
+                Files.isRegularFile(ignore)
+                        && "*\n".equals(new String(Files.readAllBytes(ignore), StandardCharsets.UTF_8)),
+                "no such .gitignore in " + dir);
+
+        // The tool upper-cases its argument, so a note that escaped the
+        // directory would be a file named X beside the store.
+        Admin.Run notId = Admin.run(store, "evict", "../x", "2025");
+        c.same("a non-station id still exits 0", 0, notId.exit);
+        c.same("but nothing is written beside the store for ../x",
+                "[meridian.db, meridian.db.evict]", names(dir.getParent()));
+        c.same("and the directory holds GUELPH's note and nothing else",
+                "[.gitignore, GUELPH]", names(dir));
+    }
+
+    /** The names in a directory, sorted. */
+    private static String names(Path dir) throws IOException {
+        if (!Files.isDirectory(dir)) {
+            return "(no directory " + dir.getFileName() + ")";
+        }
+        try (Stream<Path> entries = Files.list(dir)) {
+            return entries.map(p -> p.getFileName().toString()).sorted()
+                    .collect(Collectors.toList()).toString();
         }
     }
 

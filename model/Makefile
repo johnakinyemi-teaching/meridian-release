@@ -33,10 +33,19 @@ OBJ = params.o weather.o pet.o soilwat.o runoff.o snow.o \
       runopts.o stress.o nbal_kernel.o nutrient.o nuptake.o nbal.o \
       cropmod.o
 
+.PHONY: all test clean
+
 all: cropmod
 
 cropmod: $(OBJ)
 	$(FC) -o cropmod $(OBJ)
+
+test_kernel: test_kernel.f90 nbal_kernel.o
+	$(FC) $(F90FLAGS) -o test_kernel test_kernel.f90 nbal_kernel.o
+
+test: cropmod test_kernel
+	./test_kernel
+	./test_characterization.sh
 
 # ---- base layers --------------------------------------------------
 params.o:   params.f90
@@ -86,4 +95,4 @@ cropmod.o:  cropmod.f runopts.o nbal.o
 	$(FC) $(FFLAGS) -c cropmod.f
 
 clean:
-	rm -f *.o *.mod cropmod MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC
+	rm -f *.o *.mod cropmod test_kernel MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC

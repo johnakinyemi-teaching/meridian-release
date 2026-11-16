@@ -85,8 +85,8 @@ jobs:
       # ---- services (Relay) ------------------------------------------
       # After the oracle check on purpose: a failure here can never hide the
       # oracle line or skip another subsystem's steps. The tests build their
-      # own store with the sqlite3 CLI, the tool the service shells out to,
-      # so they do not read the pipeline's data.
+      # own store with the sqlite3 CLI, so they do not read the pipeline's
+      # data.
       - name: Services tests
         timeout-minutes: 10
         run: |

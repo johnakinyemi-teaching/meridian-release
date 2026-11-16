@@ -19,8 +19,9 @@ import java.util.stream.Stream;
 /**
  * A throwaway SQLite store in its own temporary directory.
  *
- * Every store is built with the sqlite3 command line tool, the same way
- * the service reaches it, so the tests add no driver of their own.
+ * Every store is built with the sqlite3 command line tool. The service
+ * used to reach its store through that tool and no longer does (MRD-77),
+ * which makes the tool an independent reference: see json().
  */
 final class Store {
 

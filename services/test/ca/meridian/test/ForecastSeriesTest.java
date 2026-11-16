@@ -13,8 +13,9 @@ import java.nio.file.Paths;
  * Each check sends one request to a running ApiServer and compares the
  * whole answer (status, content type, CORS header, body) with what the
  * service gave before any change. Bodies are compared byte for byte:
- * these two routes pass sqlite3's own JSON through, so the text is the
- * contract (the portal depends on "their exact JSON", ApiServer.java).
+ * these two routes send the store's JSON as it is, in the form the sqlite3
+ * program printed it, so the text is the contract (the portal depends on
+ * "their exact JSON", ApiServer.java).
  *
  * The quote-in-station section is MRD-166 itself: requests that used to be
  * run as SQL and now only look a station up by that text.

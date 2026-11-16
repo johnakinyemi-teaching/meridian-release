@@ -7,14 +7,16 @@ import java.io.IOException;
 /**
  * A thin wrapper over {@link Db} that the newer endpoints use.
  *
- * It adds two things the raw shell-out class never grew: a bounded
- * retry, because the sqlite3 process occasionally lost a race against
- * the ingest job's write lock and came back "database is locked", and
- * a typed {@link ResultSetLite} return so callers stop re-parsing the
- * JSON by hand. The retry count comes from meridian.db.retries.
+ * It adds two things Db itself never grew: a bounded retry, because a
+ * read occasionally lost a race against the ingest job's write lock and
+ * came back "database is locked", and a typed {@link ResultSetLite}
+ * return so callers stop re-parsing the JSON by hand. The retry count
+ * comes from meridian.db.retries.
  *
  * This does NOT replace Db - the original handlers still call Db
- * directly, and the shell-out (MRD-77) is unchanged underneath.
+ * directly. Db reported a lock as "sqlite3 exited 5" when it ran the
+ * sqlite3 program, and still does now that it reads the store
+ * in-process (MRD-77); the retry below depends on that text.
  *
  * D. Iqbal 2021
  */

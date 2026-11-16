@@ -16,10 +16,11 @@ import java.util.concurrent.Future;
 /**
  * Characterization tests for MRD-77: everything that reaches the store.
  *
- * Every route and every admin command goes through one class, Db, which
- * today starts the sqlite3 program for each query and hands back what it
- * printed. Replacing that touches all of them at once, so before it is
- * touched this pins:
+ * Every route and every admin command goes through one class, Db. It
+ * used to start the sqlite3 program for each query and hand back what it
+ * printed; it now reads the store in-process. That change touched all of
+ * them at once, so these checks were written before it, against the
+ * program, and passed through it unedited. They pin:
  *
  *   - the text Db returns, against what sqlite3 itself prints for the same
  *     query on the same store, byte for byte;
@@ -27,6 +28,9 @@ import java.util.concurrent.Future;
  *     pinned by the forecast, series and cache tests;
  *   - what each route answers when the store has no tables, is not a
  *     database, or is locked, including the retry the newer routes make.
+ *
+ * The last section came with the change: what only a Db that reads the
+ * store itself can do.
  */
 final class StoreAccessTest {
 
@@ -43,6 +47,7 @@ final class StoreAccessTest {
         }
         everyRouteOnABrokenStore(c);
         theRetryOnALockedStore(c, testDir);
+        withoutTheProgram(c, testDir);
     }
 
     /**
@@ -251,6 +256,51 @@ final class StoreAccessTest {
             }
             c.recorded("/api/summary answers again once the lock is released",
                     api.get("/api/summary?station=GUELPH"), "summary-guelph.json");
+        }
+    }
+
+    /**
+     * MRD-77. What only a Db that reads the store itself can do. Each of
+     * the first six failed while Db started the sqlite3 program.
+     */
+    private static void withoutTheProgram(Checks c, Path testDir) throws IOException {
+        c.section("MRD-77: the store is read in-process");
+        Store store = Store.fromFixture(testDir);
+        Db db = new Db(store.path());
+
+        Admin.Run noProgram = Admin.runWithNothingOnThePath(store, "stations");
+        c.same("with no sqlite3 on the PATH the admin tool still works: exit status", 0, noProgram.exit);
+        c.text("with no sqlite3 on the PATH the admin tool still works: what it prints",
+                noProgram.out, "admin-stations.txt");
+
+        c.same("the SQLite in use is the one inside services/lib",
+                "[{\"v\":\"3.46.1\"}]", answer(db, "SELECT sqlite_version() AS v"));
+
+        c.same("a bound value 200,000 characters long is looked up, not refused",
+                "[{\"n\":0}]",
+                answer(db, "SELECT COUNT(*) AS n FROM forecast WHERE stnid = ?1", "A".repeat(200_000)));
+
+        c.same("a control character in text is written as a valid JSON escape",
+                "[{\"c\":\"\\u0001\"}]", answer(db, "SELECT char(1) AS c"));
+
+        c.same("a call holding two statements runs the first only",
+                "[{\"a\":1}]", answer(db, "SELECT 1 AS a; SELECT 2 AS b"));
+
+        c.same("values and placeholders must match in number",
+                "java.lang.IllegalArgumentException: 2 value(s) for 1 placeholder(s)",
+                answer(db, "SELECT ?1 AS v", "a", "b"));
+
+        String big = "SELECT 9223372036854775808.0 AS two_to_63, -9223372036854775808.0 AS minus";
+        c.same("a whole number too large for a long keeps SQLite's spelling",
+                store.json(big), answer(db, big));
+    }
+
+    /** What Db returns, or how it failed. */
+    private static String answer(Db db, String sql, Object... params) {
+        try {
+            return db.queryJson(sql, params);
+        } catch (IOException | RuntimeException e) {
+            return e.toString();
         }
     }
 

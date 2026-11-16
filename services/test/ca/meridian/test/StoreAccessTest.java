@@ -93,7 +93,7 @@ final class StoreAccessTest {
             "SELECT 1 AS \"a b\", 2 AS \"c\"\"d\", 3 AS \"e\\f\"",
         };
         for (String sql : queries) {
-            c.same(shortened(sql), store.json(sql), db.queryJson(sql));
+            c.same(shortened(sql), Reals.asTheServiceSpellsThem(store.json(sql)), db.queryJson(sql));
         }
     }
 
@@ -292,7 +292,19 @@ final class StoreAccessTest {
 
         String big = "SELECT 9223372036854775808.0 AS two_to_63, -9223372036854775808.0 AS minus";
         c.same("a whole number too large for a long keeps SQLite's spelling",
-                store.json(big), answer(db, big));
+                Reals.asTheServiceSpellsThem(store.json(big)), answer(db, big));
+
+        // Reals adapts expected numbers to this machine's spelling. Where the
+        // recordings were made, the spelling itself is held to what the
+        // consoles have always been sent.
+        String arch = System.getProperty("os.arch");
+        if (arch.equals("amd64") || arch.equals("x86_64")) {
+            c.same("on x86-64 the oracle value 5.951 is spelled as it always was",
+                    "[{\"v\":5.95099999999999962}]", answer(db, "SELECT 5.951 AS v"));
+        } else {
+            System.out.println("  note  this machine is " + arch
+                    + ", not x86-64: numbers are compared in its own spelling");
+        }
     }
 
     /** What Db returns, or how it failed. */

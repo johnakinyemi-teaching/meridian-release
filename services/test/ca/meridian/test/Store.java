@@ -126,10 +126,12 @@ final class Store {
             // a reader, cannot knock the lock out before it is taken.
             toHolder.write(".timeout 10000\nBEGIN EXCLUSIVE;\n".getBytes(StandardCharsets.UTF_8));
             toHolder.flush();
-            // Wait until a reader is really shut out (sqlite3 exits 5,
-            // SQLITE_BUSY) instead of sleeping and hoping.
+            // Wait until a reader is really shut out, instead of sleeping
+            // and hoping. sqlite3 3.45 exits 5 (SQLITE_BUSY) then; newer
+            // ones use other codes, so any failure of this harmless read
+            // is taken to mean the lock is held.
             for (int attempt = 0; attempt < 200; attempt++) {
-                if (sqlite(null, store.path(), "SELECT 1 FROM sqlite_schema LIMIT 0").exit == 5) {
+                if (sqlite(null, store.path(), "SELECT 1 FROM sqlite_schema LIMIT 0").exit != 0) {
                     return;
                 }
                 pause(25);

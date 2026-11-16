@@ -57,10 +57,28 @@ final class Checks {
 
     /** A 200 JSON response whose body must equal a recorded file exactly. */
     void recorded(String name, Http.Response r, String file) throws IOException {
+        compareWithFile(name, r, file, false);
+    }
+
+    /**
+     * The same, for the old routes, which send each REAL in SQLite's own
+     * spelling. The REAL numbers in the recording are first written the
+     * way the service's SQLite writes them on this machine (see Reals);
+     * everything else is compared as recorded.
+     */
+    void passthrough(String name, Http.Response r, String file) throws IOException {
+        compareWithFile(name, r, file, true);
+    }
+
+    private void compareWithFile(String name, Http.Response r, String file, boolean sqliteNumbers)
+            throws IOException {
         Path p = expectedDir.resolve(file);
         String expectedBody = Files.exists(p)
                 ? new String(Files.readAllBytes(p), StandardCharsets.UTF_8)
                 : "(no recorded file " + p + ")";
+        if (sqliteNumbers && Files.exists(p)) {
+            expectedBody = Reals.asTheServiceSpellsThem(expectedBody);
+        }
         String expected = describe(200, expectedBody);
         String actual = describe(r);
         if (expected.equals(actual)) {

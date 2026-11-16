@@ -58,6 +58,13 @@ final class Store {
         return s;
     }
 
+    /** A directory where the store file should be. */
+    static Store aDirectory() throws IOException {
+        Store s = new Store(newDir().resolve("meridian.db"));
+        Files.createDirectory(s.file);
+        return s;
+    }
+
     /** An independent copy, for tests that are expected to damage it. */
     Store copy() throws IOException {
         Store s = new Store(newDir().resolve("meridian.db"));
@@ -76,6 +83,19 @@ final class Store {
             throw new IOException("sqlite3 exited " + r.exit + " for: " + statement + "\n" + r.output);
         }
         return r.output.trim();
+    }
+
+    /**
+     * What "sqlite3 -json" prints for a query on this store, tidied the way
+     * Db has always tidied it: trimmed, and [] when there are no rows.
+     */
+    String json(String statement) throws IOException {
+        Result r = sqlite(null, "-json", path(), statement);
+        if (r.exit != 0) {
+            throw new IOException("sqlite3 exited " + r.exit + " for: " + statement + "\n" + r.output);
+        }
+        String printed = r.output.trim();
+        return printed.isEmpty() ? "[]" : printed;
     }
 
     int count(String table) throws IOException {

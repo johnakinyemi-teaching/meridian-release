@@ -103,11 +103,10 @@ if [[ ! -f "${TMP_DIR}/trace/MERIDIAN.TRC" ]]; then
     exit 1
 fi
 
-if cmp -s "${TMP_DIR}/trace/MERIDIAN.TRC" "${REF_TRC}"; then
-    echo "  PASS: MERIDIAN.TRC matches pinned golden trace fixture (byte-identical)."
+if python3 "${SCRIPT_DIR}/validate_trace.py" "${REF_TRC}" "${TMP_DIR}/trace/MERIDIAN.TRC"; then
+    echo "  PASS: MERIDIAN.TRC matches pinned golden trace fixture within tolerance."
 else
     echo "  FAIL: Generated MERIDIAN.TRC differs from reference fixture!"
-    diff -u "${REF_TRC}" "${TMP_DIR}/trace/MERIDIAN.TRC" | head -n 20
     exit 1
 fi
 

@@ -46,6 +46,6 @@ def test_current_forecast_same_timestamp():
 
 # Current bug: text comparison picks the older run.
 def test_mixed_format_current_behaviour():
-    assert current_forecast(MIXED_ROWS).model == "cropmod-4.2"
+    assert current_forecast(MIXED_ROWS).model == 'cropmod-4.2'
     assert current_run_at(MIXED_ROWS) == "2021-08-16T03:00:00"
 

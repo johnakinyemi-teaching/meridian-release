@@ -46,19 +46,57 @@ test('Compare: recorded station yields retain three decimals', async () => {
   });
 });
 
-test('Compare: out-of-order forecasts select the last returned run before refactor', async () => {
+test('Compare: out-of-order forecasts select the greatest year', async () => {
   const rows = await compareTable({
     fixtures: {
       'forecast.GUELPH.json': 'forecast.GUELPH.multi-year.json'
     }
   });
 
+  /* MRD-253: previously selected 2023 (4.402).
+   * The shared MRD-252 rule now selects 2025 (5.951).
+   */
   assert.deepEqual(rows.find(r => r.Station === 'GUELPH'), {
     Station: 'GUELPH',
     Runs: '2',
     Min: '4.402',
     Max: '5.951',
-    Latest: '4.402',
-    Yr: '2023'
+    Latest: '5.951',
+    Yr: '2025'
   });
+});
+
+test('Trends detail view loads the greatest-year forecast series', async () => {
+  const { window: w, $, calls } = h.boot({
+    fixtures: {
+      'forecast.GUELPH.json': 'forecast.GUELPH.multi-year.json'
+    }
+  });
+
+  w.Meridian.Views.Trends.render($('#view'));
+
+  await h.waitFor(() =>
+    $('#tr-table table tbody tr').length
+  );
+
+  $('#tr-table .tr-row[data-stn="GUELPH"]').trigger('click');
+
+  await h.waitFor(() =>
+    calls.some(c =>
+      c.path === '/api/series' &&
+      c.params.station === 'GUELPH'
+    )
+  );
+
+  const requests = calls.filter(c =>
+    c.path === '/api/series' &&
+    c.params.station === 'GUELPH'
+  );
+
+  assert.equal(Number(requests[requests.length - 1].params.year), 2025);
+
+  assert.equal(
+    $('#tr-detail-lbl').text(),
+    '– GUELPH 2025'
+  );
 });

@@ -19,6 +19,7 @@ window.Meridian.Views.Compare = (function ($) {
 
     var Dom = window.Meridian.Dom;
     var Fmt = window.Meridian.Fmt;
+    var Forecast = window.Meridian.Forecast;
     var State = window.Meridian.State;
     var BarChart = window.Meridian.Charts.BarChart;
     var Spark = window.Meridian.Charts.Sparkline;
@@ -131,17 +132,17 @@ window.Meridian.Views.Compare = (function ($) {
         var rows = [];
         for (var i = 0; i < set.length; i++) {
             var stn = set[i];
-            var fc = forecasts[stn] || [];
-            var ys = [], min = null, max = null, latest = null, latestYear = null;
-            for (var j = 0; j < fc.length; j++) {
-                var y = Number(fc[j].yield_t);
-                ys.push(y);
-                if (min === null || y < min) { min = y; }
-                if (max === null || y > max) { max = y; }
-                latest = y; latestYear = fc[j].year;
-            }
-            rows.push({ stn: stn, ys: ys, min: min, max: max,
-                        latest: latest, latestYear: latestYear, n: fc.length });
+            var s = Forecast.spread(forecasts[stn], true);
+
+            rows.push({
+                stn: stn,
+                ys: s.history,
+                min: s.min,
+                max: s.max,
+                latest: s.current,
+                latestYear: s.year,
+                n: s.runs
+            });
         }
         var html = Dom.buildTable({
             tableClass: 'cmp-yield-tbl',

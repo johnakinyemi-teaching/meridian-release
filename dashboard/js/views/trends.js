@@ -5,19 +5,15 @@
  * network trending this season" without adding each station to the Compare
  * set by hand.
  *
- * This re-implements the roll-up the ui-next Compare screen does in
- * ui-next/src/api/forecastClient.ts (yieldSpread + the yield table). It is a
- * second copy in ES5 - the two consoles ship separately and neither imports
- * the other - so if the roll-up changes it has to change in both places.
+ * MRD-253: forecast selection and yield roll-up are centralized in
+ * js/util/forecast.js, following the shared rule agreed with Frontier
+ * under MRD-252.
  *
- * DRIFT (matches the rest of this console, differs from ui-next):
- *   - "Current" run is the LAST row the service returns for a station, the
- *     same rule views/forecast.js and views/compare.js use. The ui-next
- *     forecast client instead takes the greatest-numeric-year run, so the two
- *     consoles can name a different current yield for the same station when the
- *     service returns runs out of ascending-year order (cf. MRD-238, MRD-241).
- *   - Yields are formatted with Fmt.yield_t (three decimals). ui-next's
- *     Compare prints two.
+ * Shared forecast rule:
+ *   - Current run is the forecast with the greatest year.
+ *   - Same-year ties are resolved using the latest run_at timestamp.
+ *   - Equal or unparseable timestamps fall back to the last returned row.
+ *   - Yields retain three-decimal formatting through Fmt.yield_t.
  *
  * No build step (MRD-181): bare <script>, ES5 only, no arrow/template syntax.
  */
@@ -28,6 +24,7 @@ window.Meridian.Views.Trends = (function ($) {
 
     var Dom = window.Meridian.Dom;
     var Fmt = window.Meridian.Fmt;
+    var Forecast = window.Meridian.Forecast;
     var State = window.Meridian.State;
     var BarChart = window.Meridian.Charts.BarChart;
     var Spark = window.Meridian.Charts.Sparkline;
@@ -76,40 +73,17 @@ window.Meridian.Views.Trends = (function ($) {
      * row the service returns. Kept identical to views/forecast.js and
      * views/compare.js so this console stays internally consistent (see the
      * DRIFT note at the top for how this differs from ui-next). */
-    function currentRun(rows) {
-        if (!rows || !rows.length) { return null; }
-        return rows[rows.length - 1];
-    }
+
 
     /* spread(): min / max / current yield + a year-ordered history, the ES5
      * twin of forecastClient.yieldSpread(). */
-    function spread(rows) {
-        if (!rows || !rows.length) {
-            return { runs: 0, min: null, max: null, current: null, year: null, history: [] };
-        }
-        var byYear = rows.slice().sort(function (a, b) { return a.year - b.year; });
-        var min = null, max = null, history = [], i, y;
-        for (i = 0; i < byYear.length; i++) {
-            y = Number(byYear[i].yield_t);
-            history.push(y);
-            if (min === null || y < min) { min = y; }
-            if (max === null || y > max) { max = y; }
-        }
-        var cur = currentRun(rows);
-        return {
-            runs: rows.length,
-            min: min, max: max,
-            current: cur ? Number(cur.yield_t) : null,
-            year: cur ? cur.year : null,
-            history: history
-        };
-    }
+
 
     function renderTable(all) {
         var rows = [];
         for (var i = 0; i < all.length; i++) {
             var stn = all[i].stnid;
-            var s = spread(fleet[stn]);
+            var s = Forecast.spread(fleet[stn]);
             rows.push({ stn: stn, s: s });
         }
         var html = Dom.buildTable({
@@ -149,7 +123,7 @@ window.Meridian.Views.Trends = (function ($) {
     function openDetail(stn) {
         detailStn = stn;
         markSelected(stn);
-        var run = currentRun(fleet[stn]);
+        var run = Forecast.currentRun(fleet[stn]);
         if (!run) {
             $('#tr-detail-lbl').text('');
             $('#tr-chart').html('<div class="chart-empty">no forecast runs for ' +

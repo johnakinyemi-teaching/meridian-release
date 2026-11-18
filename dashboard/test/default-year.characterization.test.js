@@ -1,5 +1,5 @@
-/* MRD-253: characterize default-year selection in Forecast
- * and Anomalies before addressing PR #17 review feedback.
+/* MRD-253: characterize default-year selection in Forecast,
+ * Anomalies and Data Quality.
  */
 'use strict';
 
@@ -34,18 +34,22 @@ async function openView(view, selectedYear) {
   return { $, year: Number(request.params.year) };
 }
 
-test('Forecast: unavailable selected year defaults to last returned year', async () => {
+test('Forecast: unavailable selected year defaults to greatest year', async () => {
   const { $, year } = await openView('Forecast', 2022);
 
-  assert.equal(year, 2023);
-  assert.equal($('#fc-year').text(), '– 2023');
+  // MRD-253: previously defaulted to 2023 (last returned row).
+  // Now follows the shared forecast rule agreed under MRD-252.
+  assert.equal(year, 2025);
+  assert.equal($('#fc-year').text(), '– 2025');
 });
 
-test('Anomalies: unavailable selected year defaults to last returned year', async () => {
+test('Anomalies: unavailable selected year defaults to greatest year', async () => {
   const { $, year } = await openView('Anomalies', 2022);
 
-  assert.equal(year, 2023);
-  assert.equal($('#an-year').val(), '2023');
+  // MRD-253: previously defaulted to 2023 (last returned row).
+  // Now follows the shared forecast rule agreed under MRD-252.
+  assert.equal(year, 2025);
+  assert.equal($('#an-year').val(), '2025');
 });
 
 test('Forecast: preserves an explicitly selected available year', async () => {
@@ -56,6 +60,18 @@ test('Forecast: preserves an explicitly selected available year', async () => {
 
 test('Anomalies: preserves an explicitly selected available year', async () => {
   const { year } = await openView('Anomalies', 2023);
+
+  assert.equal(year, 2023);
+});
+
+test('Quality: unavailable selected year defaults to last returned year', async () => {
+  const { year } = await openView('Quality', 2022);
+
+  assert.equal(year, 2023);
+});
+
+test('Quality: preserves an explicitly selected available year', async () => {
+  const { year } = await openView('Quality', 2023);
 
   assert.equal(year, 2023);
 });

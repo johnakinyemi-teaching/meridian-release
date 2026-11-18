@@ -1,16 +1,16 @@
 // src/api/forecastClient.characterization.test.ts
-// MRD-252 safety net. CHARACTERIZATION tests: they record what forecastClient.ts
-// does TODAY, including the behaviour MRD-252 calls drift. They are committed
-// before the change and must pass on the unchanged code.
+// MRD-252 safety net. CHARACTERIZATION tests: committed before the MRD-252
+// change, recording what forecastClient.ts did then. MRD-252 edited exactly the
+// expectations the shared rule changes (3 dp yield; same-year tie on the run_at
+// TIMESTAMP, not its text); every other pin is unchanged and still holds.
 //
 // Inputs are recorded /api/forecast responses (src/api/__fixtures__), served
 // through the real fetchForecastRuns() with only global fetch mocked. Assertions
 // are on the values the Compare screen renders (currentForecastRun, yieldSpread,
 // formatYield), not on markup.
 //
-// Legacy console counterpart (NOT asserted here; owned by Watchtower): for the
-// same rows, dashboard/js/views/compare.js takes the LAST returned row as
-// "Latest" and Meridian.Fmt.yield_t prints 3 dp with no unit.
+// Legacy console counterpart (NOT asserted here; owned by Watchtower, MRD-253):
+// dashboard/js/views/compare.js must apply the same rule.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -44,17 +44,17 @@ describe('fetchForecastRuns (recorded default data, one run per station)', () =>
     expect(rows).toHaveLength(1);
   });
 
-  it('GUELPH 2025 headline: current run 2025, 5.951 t/ha raw, shown as "5.95 t/ha"', async () => {
+  it('GUELPH 2025 headline: current run 2025, 5.951 t/ha raw, shown as "5.951 t/ha"', async () => {
     serve(guelphRecorded);
     const rows = await fetchForecastRuns('GUELPH');
     const spread = yieldSpread(rows);
     expect(spread.currentYear).toBe(2025);
     expect(spread.current).toBe(5.951); // the oracle value
-    expect(formatYield(spread.current)).toBe('5.95 t/ha'); // 2 dp + unit (legacy: "5.951")
+    expect(formatYield(spread.current)).toBe('5.951 t/ha'); // MRD-252: was "5.95 t/ha" (2 dp)
     expect(defaultSeriesYear(rows)).toBe(2025);
   });
 
-  it('Compare yield table cells for a one-run station: min = max = current, 2 dp + unit', async () => {
+  it('Compare yield table cells for a one-run station: min = max = current, 3 dp + unit', async () => {
     serve(kitchnerRecorded);
     const rows = await fetchForecastRuns('KITCHNER');
     const s = yieldSpread(rows);
@@ -62,7 +62,7 @@ describe('fetchForecastRuns (recorded default data, one run per station)', () =>
     expect(s.min).toBe(s.max);
     expect(s.max).toBe(s.current);
     expect(formatYield(s.min)).toBe(formatYield(s.current));
-    expect(formatYield(s.current)).toMatch(/^\d+\.\d{2} t\/ha$/);
+    expect(formatYield(s.current)).toMatch(/^\d+\.\d{3} t\/ha$/); // MRD-252: was \d{2}
   });
 });
 
@@ -94,20 +94,21 @@ describe('current-run selection: out-of-order rows (the MRD-252 drift)', () => {
   });
 });
 
-describe('same-year tie-break compares run_at as TEXT (same hazard family as MRD-250)', () => {
+describe('same-year tie-break compares run_at as a TIMESTAMP (MRD-252; was text, same hazard family as MRD-250)', () => {
   const rows = guelphTextRunAt as ForecastRow[];
 
-  it('"2023-07-01T02:00:00" beats the later-in-time "2023-07-01 09:00:00" because "T" > " "', () => {
-    // Chronologically the space-format row (09:00) is later; text order says otherwise.
-    expect(currentForecastRun(rows)?.yield_t).toBe(4.1);
+  it('the later-in-time "2023-07-01 09:00:00" beats "2023-07-01T02:00:00" despite "T" > " " as text', () => {
+    // MRD-252: was 4.1 (the text-order winner, 02:00). The 09:00 row is later.
+    expect(currentForecastRun(rows)?.yield_t).toBe(4.9);
   });
 });
 
-describe('formatYield (the 2 dp / unit side of the drift)', () => {
-  it('rounds to 2 dp and appends " t/ha"', () => {
-    expect(formatYield(5.951)).toBe('5.95 t/ha');
-    expect(formatYield(4.4021)).toBe('4.40 t/ha');
-    expect(formatYield(0)).toBe('0.00 t/ha');
+describe('formatYield (shared rule: 3 dp + " t/ha")', () => {
+  it('rounds to 3 dp and appends " t/ha"', () => {
+    // MRD-252: were "5.95 t/ha", "4.40 t/ha", "0.00 t/ha" (2 dp).
+    expect(formatYield(5.951)).toBe('5.951 t/ha');
+    expect(formatYield(4.4021)).toBe('4.402 t/ha');
+    expect(formatYield(0)).toBe('0.000 t/ha');
   });
 
   it('renders missing or non-finite values as an em dash', () => {

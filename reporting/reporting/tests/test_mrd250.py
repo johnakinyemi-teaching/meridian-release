@@ -44,8 +44,16 @@ def test_current_forecast_same_timestamp():
     assert current_forecast(rows).year == 2021
 
 
-# Current bug: text comparison picks the older run.
-def test_mixed_format_current_behaviour():
-    assert current_forecast(MIXED_ROWS).model == 'cropmod-4.2'
-    assert current_run_at(MIXED_ROWS) == "2021-08-16T03:00:00"
+# Check that mixed timestamp formats select the newer run.
+def test_mixed_format_selects_newer_run():
+    assert current_forecast(MIXED_ROWS).model == "cropmod-4.3"
+    assert current_run_at(MIXED_ROWS) == "2021-08-16 09:00:00"
 
+
+# Check that a newer backfill forecast is selected.
+def test_backfill_format():
+    rows = [
+        _forecast(2021, "2021-08-16T03:00:00", "cropmod-4.2"),
+        _forecast(2020, "08/16/2021 09:00", "cropmod-4.3"),
+    ]
+    assert current_forecast(rows).model == "cropmod-4.3"

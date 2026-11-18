@@ -94,8 +94,7 @@ var MeridianApi = (function ($) {
     function anomalies(stn, year, cb) {
         series(stn, year, function (err, rows) {
             if (err) { cb(err, null); return; }
-            var rules = (window.Meridian && window.Meridian.Quality)
-                ? window.Meridian.Quality.RULES : null;
+            var rules = window.Meridian.Quality.RULES;
             var out = [], i, flags;
             var prevBiom = null;
             for (i = 0; i < rows.length; i++) {
@@ -109,14 +108,7 @@ var MeridianApi = (function ($) {
 
     function deriveFlags(r, prevBiom, rules) {
         var flags = [];
-        /* fall back to hard-coded bounds if the Quality module has not
-         * loaded yet (script order should prevent this, but the field
-         * build once shipped views/ before util/ and nobody noticed for a
-         * week - R.P.). */
-        var b = rules || {
-            swMin: 0, swMax: 400, etMin: 0, etMax: 12,
-            drainMin: 0, laiMin: 0, laiMax: 9, biomDropFrac: 0.15
-        };
+        var b = rules;
         if (r.sw < b.swMin || r.sw > b.swMax) { flags.push('sw-range'); }
         if (r.et < b.etMin || r.et > b.etMax) { flags.push('et-range'); }
         if (r.drain < b.drainMin) { flags.push('drain-neg'); }

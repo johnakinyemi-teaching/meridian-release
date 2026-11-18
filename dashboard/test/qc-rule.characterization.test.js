@@ -102,11 +102,20 @@ test('boundary series: exact per-row flags from MeridianApi.anomalies', async ()
   assert.deepEqual(rows.map((r) => r.suspect), [false, false, true, true, false, true, false]);
 });
 
-test('api.js fallback bounds give the same flags when views/quality.js is absent', async () => {
-  const { window: w } = h.boot({ skip: ['js/views/quality.js'] });
-  assert.equal(w.Meridian.Quality, undefined, 'quality.js must not be loaded for this case');
+test('api.js uses shared QC rules even when the Quality view is absent', async () => {
+  const { window: w } = h.boot({
+    skip: ['js/views/quality.js']
+  });
+
+  assert.equal(w.Meridian.Views.Quality, undefined);
+  assert.deepEqual(plain(w.Meridian.Quality.RULES), EXPECTED_RULES);
+
   const rows = await h.call(w, 'anomalies', 'EDGE', 2025);
   assert.deepEqual(flagsByDoy(rows), EDGE_FLAGS);
+  assert.deepEqual(
+    rows.map(r => r.suspect),
+    [false, false, true, true, false, true, false]
+  );
 });
 
 test('Data Quality view: tile and threshold values for recorded GUELPH 2025', async () => {
@@ -147,4 +156,21 @@ test('Data Quality view: tile values for the boundary series', async () => {
     tiles[$(this).find('.tile-label').text()] = $(this).find('.tile-val').text();
   });
   assert.deepEqual(tiles, { 'Days': '7', 'Clean': '57.1%', 'Suspect rows': '3', 'Total flags': '9' });
+});
+
+test('api.js classification responds to changes in the shared QC rules', async () => {
+  const { window: w } = h.boot();
+
+  const before = await h.call(w, 'anomalies', 'EDGE', 2025);
+  assert.deepEqual(flagsByDoy(before), EDGE_FLAGS);
+
+  // Temporarily change the shared threshold in this test window.
+  w.Meridian.Quality.RULES.swMax = 399;
+
+  const after = await h.call(w, 'anomalies', 'EDGE', 2025);
+
+  const upperBoundRow = after.find(r => r.doy === 101);
+
+  assert.ok(upperBoundRow.flags.includes('sw-range'));
+  assert.equal(upperBoundRow.suspect, true);
 });

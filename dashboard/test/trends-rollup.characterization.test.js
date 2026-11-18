@@ -42,12 +42,26 @@ test('GUELPH oracle yield shows as 5.951 in the legacy console', async () => {
   assert.equal(rows.find((r) => r.Station === 'GUELPH').Current, '5.951');
 });
 
-test('out-of-order runs: legacy takes the LAST returned run as current', async () => {
-  const rows = await trendsTable({ fixtures: { 'forecast.GUELPH.json': 'forecast.GUELPH.multi-year.json' } });
+test('out-of-order runs: shared rule selects the greatest year', async () => {
+  const rows = await trendsTable({
+    fixtures: {
+      'forecast.GUELPH.json': 'forecast.GUELPH.multi-year.json'
+    }
+  });
   const g = rows.find((r) => r.Station === 'GUELPH');
-  /* service returned [2025, 2023]; legacy names 2023 current. ui-next names
-   * 2025 (greatest year) and prints 5.95 - that is the MRD-252 drift. */
-  assert.deepEqual(g, { Station: 'GUELPH', Runs: '2', Min: '4.402', Max: '5.951', Current: '4.402', Yr: '2023' });
+
+  /* MRD-253: previously selected 2023 (4.402) because it was
+   * returned last. The agreed MRD-252 rule selects 2025 (5.951).
+   * Run count, minimum and maximum remain unchanged.
+   */
+  assert.deepEqual(g, {
+    Station: 'GUELPH',
+    Runs: '2',
+    Min: '4.402',
+    Max: '5.951',
+    Current: '5.951',
+    Yr: '2025'
+  });
 });
 
 test('Fmt.yield_t: three decimals, em dash for missing', () => {

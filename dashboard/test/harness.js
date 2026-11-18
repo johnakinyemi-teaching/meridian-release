@@ -24,10 +24,12 @@ const FIXTURES = path.join(__dirname, 'fixtures', 'api');
  * router and the health poller, which tests drive by hand instead). */
 const CONSOLE_SCRIPTS = [
   'js/vendor/jquery-1.11.3.min.js',
+  'js/util/quality.js',
   'js/api.js',
   'js/util/fmt.js',
   'js/util/dom.js',
   'js/util/state.js',
+  'js/util/forecast.js',
   'js/charts/barchart.js',
   'js/charts/sparkline.js',
   'js/views/quality.js',
@@ -56,7 +58,7 @@ function fixtureFor(urlPath, params, overrides) {
 }
 
 /* Boot a console window. opts.skip: script paths to leave out (used to test
- * api.js's hard-coded fallback when views/quality.js has not loaded). */
+ * that shared QC rules remain available without views/quality.js). */
 function boot(opts) {
   opts = opts || {};
   const skip = new Set(opts.skip || []);

@@ -12,7 +12,8 @@ window.Meridian = window.Meridian || {};
 window.Meridian.Quality = window.Meridian.Quality || {};
 
 /* Physical bounds from the agronomy group, 2017-03 memo,
- * revised 2019-08.
+ * revised 2019-08 (ET ceiling raised from 10 to 12 after
+ * the drought-year calibration).
  * Units: sw mm, et mm/day, drain mm/day, lai m2/m2.
  */
 window.Meridian.Quality.RULES = {

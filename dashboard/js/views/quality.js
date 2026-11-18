@@ -14,15 +14,11 @@
 window.Meridian = window.Meridian || {};
 window.Meridian.Views = window.Meridian.Views || {};
 
-
-
-
-
-
 window.Meridian.Views.Quality = (function ($) {
 
     var Dom = window.Meridian.Dom;
     var Fmt = window.Meridian.Fmt;
+    var Forecast = window.Meridian.Forecast;
     var State = window.Meridian.State;
     var BarChart = window.Meridian.Charts.BarChart;
     var Q = window.Meridian.Quality;
@@ -90,7 +86,7 @@ window.Meridian.Views.Quality = (function ($) {
                 for (i = 0; i < rows.length; i++) {
                     if (Number(rows[i].year) === Number(yr)) { have = true; break; }
                 }
-                if (!have) { yr = rows[rows.length - 1].year; }
+                if (!have) { yr = Forecast.currentRun(rows).year; }
                 $('#dq-year').val(yr);
                 if (autoRun) { run(stn, yr); }
             }

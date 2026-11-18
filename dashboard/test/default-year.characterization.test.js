@@ -64,10 +64,12 @@ test('Anomalies: preserves an explicitly selected available year', async () => {
   assert.equal(year, 2023);
 });
 
-test('Quality: unavailable selected year defaults to last returned year', async () => {
+test('Quality: unavailable selected year defaults to greatest year', async () => {
   const { year } = await openView('Quality', 2022);
 
-  assert.equal(year, 2023);
+  // MRD-253: align Data Quality with the shared forecast rule.
+  // Previously selected 2023 because it was the last returned row.
+  assert.equal(year, 2025);
 });
 
 test('Quality: preserves an explicitly selected available year', async () => {

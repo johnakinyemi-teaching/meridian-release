@@ -69,16 +69,6 @@ window.Meridian.Views.Trends = (function ($) {
         });
     }
 
-    /* currentRun(): the run "in force" for a station. LEGACY rule - the last
-     * row the service returns. Kept identical to views/forecast.js and
-     * views/compare.js so this console stays internally consistent (see the
-     * DRIFT note at the top for how this differs from ui-next). */
-
-
-    /* spread(): min / max / current yield + a year-ordered history, the ES5
-     * twin of forecastClient.yieldSpread(). */
-
-
     function renderTable(all) {
         var rows = [];
         for (var i = 0; i < all.length; i++) {

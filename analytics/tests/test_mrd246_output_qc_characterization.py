@@ -20,6 +20,7 @@ new behaviour the ticket asks for, and say so in the PR.
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import subprocess
 import sys
@@ -180,28 +181,38 @@ def test_BUG_nightly_path_persists_a_forecast_anomaly2_rates_error(
     assert daily[1].et == -3.851
 
 
-def test_BUG_nightly_result_carries_no_output_qc_verdict(suspect_run):
-    """MRD-246 pinned: the caller gets the forecast and nothing that says
-    it is suspect, apart from the raw dropped_days count."""
+def test_nightly_result_carries_an_advisory_output_qc_verdict(suspect_run):
+    """MRD-246: replaces test_BUG_nightly_result_carries_no_output_qc_verdict.
+    The caller now also gets anomaly2's report under 'output_qc'."""
     legacy, _, _ = suspect_run
     assert sorted(legacy) == sorted([
         "model", "stnid", "year", "ndays", "rows", "yield_t", "deck_days",
-        "run_at", "result", "summary", "dropped_days"])
+        "run_at", "result", "summary", "dropped_days", "output_qc"])
     assert legacy["dropped_days"] == 1
     assert legacy["yield_t"] == 9.999
+    rep = legacy["output_qc"]
+    assert isinstance(rep, anomaly2.AnomalyReport)
+    assert sorted(a.code for a in rep.errors()) == ["DROPPED", "NEGET"]
 
 
-def test_BUG_nightly_path_never_imports_anomaly2():
-    """MRD-246 pinned: run_forecast.py's default path does not load the
-    output QC module at all.  Checked in a fresh interpreter so this
-    test file's own import of anomaly2 does not count."""
-    code = (
-        "import sys; sys.path.insert(0, %r)\n"
-        "import meridian.orchestrator, meridian.store\n"
-        "print('meridian.anomaly2' in sys.modules)\n" % ANALYTICS_DIR)
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True,
-                         text=True, check=True).stdout.strip()
-    assert out == "False"
+def test_nightly_path_runs_anomaly2_and_logs_its_errors(tmp_path, db_path,
+                                                        caplog):
+    """MRD-246: replaces test_BUG_nightly_path_never_imports_anomaly2.
+    The nightly path now runs anomaly2 on the forecast it persists and
+    logs the ERROR findings (advisory: the run is not stopped)."""
+    seed_readings(db_path, "GUELPH", 2025)
+    fake = write_fake_cropmod(tmp_path, SUSPECT_OUT)
+    config = Config(model_binary=fake, scratch_root=str(tmp_path))
+    store = Store(db_path)
+    try:
+        orchestrator.run_station_year(store, "GUELPH", 2025, config=config)
+    finally:
+        store.close()
+    errors = [r.getMessage() for r in caplog.records
+              if r.name == "meridian.outputqc" and r.levelno == logging.ERROR]
+    assert any("DROPPED [GUELPH 2025]" in m for m in errors)
+    assert any("NEGET [GUELPH 2025]" in m and "doy 101" in m
+               for m in errors)
 
 
 def test_BUG_parallel_path_also_persists_the_suspect_forecast(tmp_path,

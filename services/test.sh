@@ -1,11 +1,12 @@
 #!/bin/sh
 # Run the services tests.
 #
-# There is no test framework here, for the same reason there is no build
-# tool: the service layer has no dependencies. The tests are plain Java
-# with a main method. They need the JDK and the sqlite3 command line tool,
-# which the service itself shells out to (MRD-77), so run them where the
-# service runs: inside the devcontainer, or in CI.
+# There is no test framework here, as there is no build tool: the tests
+# are plain Java with a main method. They need the JDK and the sqlite3
+# command line tool. The service itself no longer runs that tool (MRD-77),
+# but the tests build their stores with it and hold the service's answers
+# against what it prints, so run them where it is installed: inside the
+# devcontainer, or in CI.
 #
 #   ./services/test.sh
 #
@@ -15,8 +16,8 @@
 set -e
 cd "$(dirname "$0")"
 
-# Said first, because the old routes pass sqlite3's own JSON through and the
-# recorded answers under test/expected were made with sqlite3 3.45.
+# Said first, because the service's answers are held against what this
+# sqlite3 prints, and the recordings under test/expected were made with 3.45.
 echo "sqlite3 $(sqlite3 --version | cut -d' ' -f1), $(java -version 2>&1 | head -n 1)"
 
 ./build.sh

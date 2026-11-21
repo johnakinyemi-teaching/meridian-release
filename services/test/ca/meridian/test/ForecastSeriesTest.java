@@ -13,8 +13,9 @@ import java.nio.file.Paths;
  * Each check sends one request to a running ApiServer and compares the
  * whole answer (status, content type, CORS header, body) with what the
  * service gave before any change. Bodies are compared byte for byte:
- * these two routes pass sqlite3's own JSON through, so the text is the
- * contract (the portal depends on "their exact JSON", ApiServer.java).
+ * these two routes send the store's JSON as it is, in the form the sqlite3
+ * program printed it, so the text is the contract (the portal depends on
+ * "their exact JSON", ApiServer.java).
  *
  * The quote-in-station section is MRD-166 itself: requests that used to be
  * run as SQL and now only look a station up by that text.
@@ -39,13 +40,13 @@ final class ForecastSeriesTest {
 
     private static void forecast(Checks c, Http api) throws IOException {
         c.section("/api/forecast");
-        c.recorded("no station: every run, by station then year",
+        c.passthrough("no station: every run, by station then year",
                 api.get("/api/forecast"), ALL_FORECASTS);
-        c.recorded("station=GUELPH: its two runs, by year",
+        c.passthrough("station=GUELPH: its two runs, by year",
                 api.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
-        c.recorded("station=KITCHNER: its one run",
+        c.passthrough("station=KITCHNER: its one run",
                 api.get("/api/forecast?station=KITCHNER"), "forecast-kitchner.json");
-        c.recorded("station=MILTON: quote, comma and backslash in the model name",
+        c.passthrough("station=MILTON: quote, comma and backslash in the model name",
                 api.get("/api/forecast?station=MILTON"), "forecast-milton.json");
 
         c.section("/api/forecast: ids that match no station answer 200 []");
@@ -67,41 +68,41 @@ final class ForecastSeriesTest {
                 api.get("/api/forecast?station=" + "A".repeat(60_000)), "[]");
 
         c.section("/api/forecast: how the old query parser reads odd query strings");
-        c.recorded("empty query string: no filter",
+        c.passthrough("empty query string: no filter",
                 api.get("/api/forecast?"), ALL_FORECASTS);
-        c.recorded("a key with no '=' is ignored: no filter",
+        c.passthrough("a key with no '=' is ignored: no filter",
                 api.get("/api/forecast?station"), ALL_FORECASTS);
-        c.recorded("an empty key is ignored: no filter",
+        c.passthrough("an empty key is ignored: no filter",
                 api.get("/api/forecast?=GUELPH"), ALL_FORECASTS);
-        c.recorded("another parameter only: no filter",
+        c.passthrough("another parameter only: no filter",
                 api.get("/api/forecast?year=2025"), ALL_FORECASTS);
-        c.recorded("station given twice: the last one wins",
+        c.passthrough("station given twice: the last one wins",
                 api.get("/api/forecast?station=GUELPH&station=KITCHNER"), "forecast-kitchner.json");
-        c.recorded("an extra parameter does not disturb the station filter",
+        c.passthrough("an extra parameter does not disturb the station filter",
                 api.get("/api/forecast?station=GUELPH&year=2024"), "forecast-guelph.json");
 
         c.section("/api/forecast: wired by hand, so no method or path checks");
-        c.recorded("POST is answered like GET",
+        c.passthrough("POST is answered like GET",
                 api.send("POST", "/api/forecast?station=GUELPH"), "forecast-guelph.json");
-        c.recorded("OPTIONS is answered like GET",
+        c.passthrough("OPTIONS is answered like GET",
                 api.send("OPTIONS", "/api/forecast?station=GUELPH"), "forecast-guelph.json");
-        c.recorded("a path that only starts with the route name reaches it",
+        c.passthrough("a path that only starts with the route name reaches it",
                 api.get("/api/forecastX?station=GUELPH"), "forecast-guelph.json");
     }
 
     private static void series(Checks c, Http api) throws IOException {
         c.section("/api/series");
-        c.recorded("GUELPH 2025: three days, by day of year",
+        c.passthrough("GUELPH 2025: three days, by day of year",
                 api.get("/api/series?station=GUELPH&year=2025"), "series-guelph-2025.json");
-        c.recorded("GUELPH 2024: the year filter separates the two years",
+        c.passthrough("GUELPH 2024: the year filter separates the two years",
                 api.get("/api/series?station=GUELPH&year=2024"), "series-guelph-2024.json");
-        c.recorded("MILTON 2025: NULL values come back as null",
+        c.passthrough("MILTON 2025: NULL values come back as null",
                 api.get("/api/series?station=MILTON&year=2025"), "series-milton-2025.json");
-        c.recorded("year=+2025 parses as 2025",
+        c.passthrough("year=+2025 parses as 2025",
                 api.get("/api/series?station=GUELPH&year=+2025"), "series-guelph-2025.json");
-        c.recorded("parameters in the other order",
+        c.passthrough("parameters in the other order",
                 api.get("/api/series?year=2025&station=GUELPH"), "series-guelph-2025.json");
-        c.recorded("POST is answered like GET",
+        c.passthrough("POST is answered like GET",
                 api.send("POST", "/api/series?station=GUELPH&year=2025"), "series-guelph-2025.json");
 
         c.section("/api/series: nothing matches, 200 []");
@@ -217,7 +218,7 @@ final class ForecastSeriesTest {
             c.json("series: a station whose id is X'OR'1'='1 is found, alone",
                     onOdd.get("/api/series?station=X'OR'1'='1&year=2025"),
                     "[{\"doy\":100,\"sw\":50.5,\"et\":2.5,\"drain\":0.0,\"biom\":0.0,\"lai\":0.0}]");
-            c.recorded("and GUELPH's answer does not change because that row exists",
+            c.passthrough("and GUELPH's answer does not change because that row exists",
                     onOdd.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
         }
     }
@@ -249,9 +250,9 @@ final class ForecastSeriesTest {
                 c.error("forecast, station=GUELPH", api.get("/api/forecast?station=GUELPH"), 500, "sqlite3 exited 5");
                 c.error("series", api.get("/api/series?station=GUELPH&year=2025"), 500, "sqlite3 exited 5");
             }
-            c.recorded("forecast answers again once the lock is released",
+            c.passthrough("forecast answers again once the lock is released",
                     api.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
-            c.recorded("series answers again once the lock is released",
+            c.passthrough("series answers again once the lock is released",
                     api.get("/api/series?station=GUELPH&year=2025"), "series-guelph-2025.json");
         }
     }

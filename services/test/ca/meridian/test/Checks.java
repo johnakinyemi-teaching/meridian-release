@@ -57,10 +57,28 @@ final class Checks {
 
     /** A 200 JSON response whose body must equal a recorded file exactly. */
     void recorded(String name, Http.Response r, String file) throws IOException {
+        compareWithFile(name, r, file, false);
+    }
+
+    /**
+     * The same, for the old routes, which send each REAL in SQLite's own
+     * spelling. The REAL numbers in the recording are first written the
+     * way the service's SQLite writes them on this machine (see Reals);
+     * everything else is compared as recorded.
+     */
+    void passthrough(String name, Http.Response r, String file) throws IOException {
+        compareWithFile(name, r, file, true);
+    }
+
+    private void compareWithFile(String name, Http.Response r, String file, boolean sqliteNumbers)
+            throws IOException {
         Path p = expectedDir.resolve(file);
         String expectedBody = Files.exists(p)
                 ? new String(Files.readAllBytes(p), StandardCharsets.UTF_8)
                 : "(no recorded file " + p + ")";
+        if (sqliteNumbers && Files.exists(p)) {
+            expectedBody = Reals.asTheServiceSpellsThem(expectedBody);
+        }
         String expected = describe(200, expectedBody);
         String actual = describe(r);
         if (expected.equals(actual)) {
@@ -70,6 +88,35 @@ final class Checks {
         fail(name, expected, actual);
         Files.createDirectories(ACTUAL_DIR);
         Files.write(ACTUAL_DIR.resolve(file), r.body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * A 200 CSV download whose body must equal a recorded file.
+     *
+     * The service ends CSV lines with CR LF. This repository stores every
+     * text file with LF only (.gitattributes), so the recording holds LF
+     * and the body is compared with its CR LF pairs turned into LF. That
+     * every line really ends in CR LF is checked alongside.
+     */
+    void csv(String name, Http.Response r, String file) throws IOException {
+        Path p = expectedDir.resolve(file);
+        String recorded = Files.exists(p)
+                ? new String(Files.readAllBytes(p), StandardCharsets.UTF_8)
+                : "(no recorded file " + p + ")";
+        String body = r.body;
+        boolean everyLineEndsCrLf = body.endsWith("\r\n")
+                && body.replace("\r\n", "").indexOf('\n') < 0
+                && body.replace("\r\n", "").indexOf('\r') < 0;
+        String expected = "200 text/csv; charset=utf-8 lines end CR LF: true\n" + recorded;
+        String actual = r.status + " " + r.header("content-type")
+                + " lines end CR LF: " + everyLineEndsCrLf + "\n" + body.replace("\r\n", "\n");
+        if (expected.equals(actual)) {
+            pass(name);
+            return;
+        }
+        fail(name, expected, actual);
+        Files.createDirectories(ACTUAL_DIR);
+        Files.write(ACTUAL_DIR.resolve(file), body.replace("\r\n", "\n").getBytes(StandardCharsets.UTF_8));
     }
 
     /** Plain text (the admin tool's output) that must equal a recorded file. */

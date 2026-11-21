@@ -19,8 +19,9 @@ import java.util.stream.Stream;
 /**
  * A throwaway SQLite store in its own temporary directory.
  *
- * Every store is built with the sqlite3 command line tool, the same way
- * the service reaches it, so the tests add no driver of their own.
+ * Every store is built with the sqlite3 command line tool. The service
+ * used to reach its store through that tool and no longer does (MRD-77),
+ * which makes the tool an independent reference: see json().
  */
 final class Store {
 
@@ -58,6 +59,13 @@ final class Store {
         return s;
     }
 
+    /** A directory where the store file should be. */
+    static Store aDirectory() throws IOException {
+        Store s = new Store(newDir().resolve("meridian.db"));
+        Files.createDirectory(s.file);
+        return s;
+    }
+
     /** An independent copy, for tests that are expected to damage it. */
     Store copy() throws IOException {
         Store s = new Store(newDir().resolve("meridian.db"));
@@ -76,6 +84,19 @@ final class Store {
             throw new IOException("sqlite3 exited " + r.exit + " for: " + statement + "\n" + r.output);
         }
         return r.output.trim();
+    }
+
+    /**
+     * What "sqlite3 -json" prints for a query on this store, tidied the way
+     * Db has always tidied it: trimmed, and [] when there are no rows.
+     */
+    String json(String statement) throws IOException {
+        Result r = sqlite(null, "-json", path(), statement);
+        if (r.exit != 0) {
+            throw new IOException("sqlite3 exited " + r.exit + " for: " + statement + "\n" + r.output);
+        }
+        String printed = r.output.trim();
+        return printed.isEmpty() ? "[]" : printed;
     }
 
     int count(String table) throws IOException {
@@ -105,10 +126,12 @@ final class Store {
             // a reader, cannot knock the lock out before it is taken.
             toHolder.write(".timeout 10000\nBEGIN EXCLUSIVE;\n".getBytes(StandardCharsets.UTF_8));
             toHolder.flush();
-            // Wait until a reader is really shut out (sqlite3 exits 5,
-            // SQLITE_BUSY) instead of sleeping and hoping.
+            // Wait until a reader is really shut out, instead of sleeping
+            // and hoping. sqlite3 3.45 exits 5 (SQLITE_BUSY) then; newer
+            // ones use other codes, so any failure of this harmless read
+            // is taken to mean the lock is held.
             for (int attempt = 0; attempt < 200; attempt++) {
-                if (sqlite(null, store.path(), "SELECT 1 FROM sqlite_schema LIMIT 0").exit == 5) {
+                if (sqlite(null, store.path(), "SELECT 1 FROM sqlite_schema LIMIT 0").exit != 0) {
                     return;
                 }
                 pause(25);

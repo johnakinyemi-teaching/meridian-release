@@ -91,7 +91,7 @@ final class ForecastCacheTest {
                     api.get(V2_GUELPH), "v2-forecast-guelph.json");
 
             store.sql(NEW_RUN);
-            c.recorded("the old route has no cache and shows the third run at once",
+            c.passthrough("the old route has no cache and shows the third run at once",
                     api.get("/api/forecast?station=GUELPH"), "forecast-guelph-three.json");
             c.recorded("v2 shows three rows, but its cached summary still says two",
                     api.get(V2_GUELPH), "v2-forecast-guelph-stale.json");

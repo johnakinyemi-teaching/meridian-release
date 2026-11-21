@@ -11,8 +11,8 @@ import java.util.List;
  * through {@link Db#queryJson(String, Object...)}. The endpoints written
  * from 2019 onward go through this instead. It predates that binding,
  * so literals are quoted and escaped here: single quotes are doubled
- * the SQLite way and the few control characters that could break the
- * argv are rejected.
+ * the SQLite way and the few control characters that have no place in
+ * a station id are rejected.
  *
  * It is not a general query builder. It covers SELECT with equality
  * and range predicates, which is all the aggregate endpoints need.

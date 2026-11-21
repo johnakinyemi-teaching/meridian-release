@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +36,24 @@ final class Admin {
     }
 
     static Run run(Store store, String... args) throws IOException {
+        return run(store, null, args);
+    }
+
+    /**
+     * The same, with the PATH set to one empty directory, so that no
+     * sqlite3 program (or any other) can be started by name. The java
+     * binary itself is started by its full path.
+     */
+    static Run runWithNothingOnThePath(Store store, String... args) throws IOException {
+        Path empty = Files.createTempDirectory("meridian-empty-path");
+        try {
+            return run(store, empty.toString(), args);
+        } finally {
+            Files.deleteIfExists(empty);
+        }
+    }
+
+    private static Run run(Store store, String path, String[] args) throws IOException {
         List<String> command = new ArrayList<>();
         command.add(Paths.get(System.getProperty("java.home"), "bin", "java").toString());
         command.add("-cp");
@@ -51,6 +70,9 @@ final class Admin {
             pb.environment().remove("JAVA_TOOL_OPTIONS");
             pb.environment().remove("_JAVA_OPTIONS");
             pb.environment().remove("JDK_JAVA_OPTIONS");
+            if (path != null) {
+                pb.environment().put("PATH", path);
+            }
             pb.redirectError(errFile);
             Process p = pb.start();
             p.getOutputStream().close();

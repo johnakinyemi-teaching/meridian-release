@@ -49,30 +49,48 @@ int main(void)
 
     /* Test 1: Original frame */
     passed += check("Valid legacy fixture",
-        mrd2_packet_parse(frame, sizeof(frame), &packet), 0);
+                    mrd2_packet_parse(frame, sizeof(frame), &packet), 0);
 
     /* Test 2: Corrupt payload */
     memcpy(changed, frame, sizeof(frame));
     changed[MRD2_OFF_VALUES] ^= 0x01;
 
     passed += check("Payload corruption",
-        mrd2_packet_parse(changed, sizeof(changed), &packet), -3);
+                    mrd2_packet_parse(changed, sizeof(changed), &packet), -3);
 
     /* Test 3: Corrupt version */
     memcpy(changed, frame, sizeof(frame));
     changed[MRD2_OFF_VERSION] ^= 0x01;
 
     passed += check("Version corruption",
-        mrd2_packet_parse(changed, sizeof(changed), &packet), 0);
+                    mrd2_packet_parse(changed, sizeof(changed), &packet), 0);
 
     /* Test 4: Corrupt flags */
     memcpy(changed, frame, sizeof(frame));
     changed[MRD2_OFF_FLAGS] ^= MRD2_FLAG_SUSPECT;
 
     passed += check("Flags corruption",
-        mrd2_packet_parse(changed, sizeof(changed), &packet), 0);
+                    mrd2_packet_parse(changed, sizeof(changed), &packet), 0);
 
-    printf("\nPassed: %d/4\n", passed);
+    /* Test 5: Invalid magic */
+    memcpy(changed, frame, sizeof(frame));
+    changed[MRD2_OFF_MAGIC] = 'X';
 
-    return passed == 4 ? 0 : 1;
+    passed += check("Invalid magic",
+                    mrd2_packet_parse(changed, sizeof(changed), &packet), -2);
+
+    /* Test 6: Truncated frame */
+    passed += check("Truncated frame",
+                    mrd2_packet_parse(frame, sizeof(frame) - 1, &packet), -1);
+
+    /* Test 7: NULL input */
+    passed += check("NULL input",
+                    mrd2_packet_parse(NULL, sizeof(frame), &packet), -1);
+
+    /* Test 8: NULL output */
+    passed += check("NULL output",
+                    mrd2_packet_parse(frame, sizeof(frame), NULL), -1);
+    printf("\nPassed: %d/8\n", passed);
+
+    return passed == 8 ? 0 : 1;
 }

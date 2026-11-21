@@ -48,15 +48,18 @@ public final class ForecastCache {
     private static final class Entry {
         final Summary summary;
         final long loadedAt;
+        final String token;
 
-        Entry(Summary summary, long loadedAt) {
+        Entry(Summary summary, long loadedAt, String token) {
             this.summary = summary;
             this.loadedAt = loadedAt;
+            this.token = token;
         }
     }
 
     private final DbClient db;
     private final long ttlMillis;
+    private final EvictionMarks marks;
     private final ConcurrentHashMap<String, Entry> entries = new ConcurrentHashMap<>();
 
     public ForecastCache(DbClient db) {
@@ -66,6 +69,7 @@ public final class ForecastCache {
     public ForecastCache(DbClient db, long ttlMillis) {
         this.db = db;
         this.ttlMillis = ttlMillis;
+        this.marks = new EvictionMarks(db.raw().path());
     }
 
     /**
@@ -76,12 +80,22 @@ public final class ForecastCache {
     public Summary summary(String station) throws IOException {
         String k = key(station);
         long now = Clock.nowMillis();
+        // Read the eviction token before loading, so an evict that lands
+        // during a load is never masked: the entry we store carries the
+        // token as it was before the load, and the next read, seeing a
+        // newer token, reloads.
+        String token = marks.token(station);
         Entry e = entries.get(k);
-        if (e != null && (now - e.loadedAt) < ttlMillis) {
+        if (e != null
+                && (now - e.loadedAt) < ttlMillis
+                && !EvictionMarks.isUnknown(token)
+                && e.token.equals(token)) {
             return e.summary;
         }
         Summary fresh = load(station);
-        entries.put(k, new Entry(fresh, now));
+        if (!EvictionMarks.isUnknown(token)) {
+            entries.put(k, new Entry(fresh, now, token));
+        }
         return fresh;
     }
 
@@ -90,9 +104,21 @@ public final class ForecastCache {
      * given year lands, so the next read reflects the run straight away
      * rather than waiting out the TTL. Ops calls this from the admin tool
      * after a manual backfill (see AdminCli "evict").
+     *
+     * The admin tool runs in its own JVM, so dropping this cache's own
+     * entry is not enough: the running server has a different cache. It
+     * also leaves a note beside the store (an eviction token) that the
+     * server reads on its next summary and reloads on (MRD-247). A failure
+     * to write the note is raised, so the admin tool reports it rather than
+     * claiming an eviction that did not reach the server.
+     *
+     * The year says which run prompted the eviction and is not part of the
+     * key. There is one entry per station, aggregated across all of its
+     * runs, so a new run for any year puts it out of date.
      */
-    public void invalidate(String station, int year) {
-        entries.remove(key(station, year));
+    public void invalidate(String station, int year) throws IOException {
+        entries.remove(key(station));
+        marks.mark(station);
     }
 
     /** Drops every cached summary. */
@@ -127,14 +153,8 @@ public final class ForecastCache {
     }
 
     // The summary is aggregated across every run for the station, so the
-    // live entry is keyed by the station alone.
+    // entry is keyed by the station alone, for reads and evictions alike.
     private static String key(String station) {
         return Strings.normStation(station);
-    }
-
-    // Eviction is requested per run, which the tracker records as a
-    // (station, year) pair, so the key is built from both.
-    private static String key(String station, int year) {
-        return Strings.normStation(station) + "#" + year;
     }
 }

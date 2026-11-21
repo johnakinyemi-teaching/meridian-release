@@ -22,7 +22,7 @@ public final class Env {
     /** Property toggling per-request logging. Off by default. */
     public static final String LOG = "meridian.log";
 
-    /** Property holding the sqlite3 shell-out retry count. */
+    /** Property holding how many times a read of a locked store is retried. */
     public static final String RETRIES = "meridian.db.retries";
 
     /** Property holding the station cache TTL in seconds. */

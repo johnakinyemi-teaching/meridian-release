@@ -37,13 +37,14 @@ public final class SeriesHandler implements HttpHandler {
             return;
         }
 
+        // Both values are bound, never written into the SQL (MRD-166).
         String sql = "SELECT doy, sw, et, drain, biom, lai FROM forecast_daily"
-                   + " WHERE stnid = '" + station + "' AND year = " + y
+                   + " WHERE stnid = ?1 AND year = ?2"
                    + " ORDER BY doy";
 
         String json;
         try {
-            json = db.queryJson(sql);
+            json = db.queryJson(sql, station, y);
         } catch (IOException e) {
             ApiServer.sendError(ex, 500, e.getMessage());
             return;

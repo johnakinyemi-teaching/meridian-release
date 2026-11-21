@@ -19,6 +19,16 @@ import java.util.List;
  */
 public final class Db {
 
+    private static final Object[] NO_PARAMS = new Object[0];
+
+    // sqlite3 exits 1 for a dot-command that fails, whatever the reason.
+    // Reading the schema first makes a locked or unreadable store fail on
+    // a statement instead, with the exit code a plain query has always
+    // given (5 for a lock, 26 for a file that is not a database), so the
+    // callers that bind values keep the 500 body they always sent. It
+    // prints nothing.
+    private static final String OPEN_FIRST = "SELECT 1 FROM sqlite_master LIMIT 0";
+
     private final String dbPath;
 
     public Db(String dbPath) {
@@ -27,7 +37,36 @@ public final class Db {
 
     /** Runs a query and returns its result as a JSON array string. */
     public String queryJson(String sql) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("sqlite3", "-json", dbPath, sql);
+        return queryJson(sql, NO_PARAMS);
+    }
+
+    /**
+     * Runs a query whose values are bound, not written into the SQL text,
+     * and returns its result as a JSON array string. The SQL names them
+     * ?1, ?2, ... in the order given; a value is a String or an integer.
+     *
+     * There is still no driver here (MRD-77), so the binding is done by
+     * the sqlite3 tool itself: one ".parameter set" per value, ahead of
+     * the statement, which sqlite3 then prepares and binds. A String is
+     * handed over as the hex of its bytes, so no character of it is ever
+     * read as SQL; it reaches the statement only as a bound value.
+     *
+     * With no values this is the plain call, argument for argument.
+     */
+    public String queryJson(String sql, Object... params) throws IOException {
+        List<String> command = new ArrayList<>();
+        command.add("sqlite3");
+        command.add("-json");
+        command.add(dbPath);
+        if (params.length > 0) {
+            command.add(OPEN_FIRST);
+            for (int i = 0; i < params.length; i++) {
+                command.add(".parameter set ?" + (i + 1) + " " + literal(params[i]));
+            }
+        }
+        command.add(sql);
+
+        ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(false);
         Process p = pb.start();
 
@@ -53,6 +92,27 @@ public final class Db {
 
         String s = out.toString().trim();
         return s.isEmpty() ? "[]" : s;
+    }
+
+    /** The value as the last word of a ".parameter set" line. */
+    private static String literal(Object value) {
+        if (value instanceof Integer || value instanceof Long) {
+            return value.toString();
+        }
+        if (value instanceof String) {
+            StringBuilder hex = new StringBuilder();
+            for (byte b : ((String) value).getBytes(StandardCharsets.UTF_8)) {
+                hex.append(Character.forDigit((b >> 4) & 0xF, 0x10));
+                hex.append(Character.forDigit(b & 0xF, 0x10));
+            }
+            // x'..' is the bytes as a blob; ||'' makes it the TEXT those
+            // bytes spell. No spaces and no quotes, so there is nothing for
+            // a shell or for ProcessBuilder's Windows argv quoting to split
+            // on: only the hex digits of the value ever reach sqlite3.
+            return "x'" + hex + "'||''";
+        }
+        throw new IllegalArgumentException("cannot bind "
+                + (value == null ? "null" : value.getClass().getName()));
     }
 
     public List<String> queryColumn(String sql) throws IOException {

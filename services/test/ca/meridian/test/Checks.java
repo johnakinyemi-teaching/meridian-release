@@ -72,6 +72,21 @@ final class Checks {
         Files.write(ACTUAL_DIR.resolve(file), r.body.getBytes(StandardCharsets.UTF_8));
     }
 
+    /** Plain text (the admin tool's output) that must equal a recorded file. */
+    void text(String name, String actual, String file) throws IOException {
+        Path p = expectedDir.resolve(file);
+        String expected = Files.exists(p)
+                ? new String(Files.readAllBytes(p), StandardCharsets.UTF_8)
+                : "(no recorded file " + p + ")";
+        if (expected.equals(actual)) {
+            pass(name);
+            return;
+        }
+        fail(name, expected, actual);
+        Files.createDirectories(ACTUAL_DIR);
+        Files.write(ACTUAL_DIR.resolve(file), actual.getBytes(StandardCharsets.UTF_8));
+    }
+
     /** An error response: status and the exact {"error":...} body. */
     void error(String name, Http.Response r, int status, String message) {
         same(name, describe(status, "{\"error\":\"" + message + "\"}"), describe(r));

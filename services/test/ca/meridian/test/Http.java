@@ -1,6 +1,7 @@
 package ca.meridian.test;
 
 import ca.meridian.api.ApiServer;
+import ca.meridian.util.Env;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -59,6 +60,24 @@ final class Http implements AutoCloseable {
         ApiServer server = new ApiServer(port, store.path());
         server.start();
         return new Http(server, port);
+    }
+
+    /**
+     * Starts the service with the v2 summary cache TTL set to the given
+     * number of seconds. The service reads it once, as it is built.
+     */
+    static Http serve(Store store, int v2CacheTtlSeconds) throws IOException {
+        String before = System.getProperty(Env.V2_CACHE_TTL);
+        System.setProperty(Env.V2_CACHE_TTL, String.valueOf(v2CacheTtlSeconds));
+        try {
+            return serve(store);
+        } finally {
+            if (before == null) {
+                System.clearProperty(Env.V2_CACHE_TTL);
+            } else {
+                System.setProperty(Env.V2_CACHE_TTL, before);
+            }
+        }
     }
 
     Response get(String target) throws IOException {

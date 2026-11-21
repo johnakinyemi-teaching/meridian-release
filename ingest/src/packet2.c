@@ -82,7 +82,7 @@ int mrd2_packet_parse(const unsigned char *buf, size_t len,
      * version byte and the flags byte -- i.e. MRD2_CRC_LEN (50) bytes.
      * The channels end at offset 48, so protecting them is just the
      * first 48 bytes. */
-    want = mrd_crc16(buf, MRD2_OFF_VERSION);
+    want = mrd_crc16(buf, MRD2_CRC_LEN);
     if (want != out->crc)
         return -3;
 

@@ -16,6 +16,7 @@ which is its unhelpful default.
     Query helpers for coverage/anomaly folded in 2023 (P. Adeyemi).
 """
 from __future__ import annotations
+from datetime import datetime, timezone
 
 import os
 import sqlite3
@@ -26,6 +27,41 @@ from typing import Iterable, List, Optional, Sequence
 class ReportDBError(Exception):
     """Raised for any problem opening or querying the store."""
 
+# added helpers 
+def parse_run_at(text) -> Optional[datetime]:
+    """Parse a run_at string into an aware UTC datetime, or None.
+
+    Accepts ISO-8601 with a 'T' or space separator, an optional fraction,
+    and an optional 'Z' or UTC offset. A timestamp with no offset is
+    treated as UTC. Anything else (including ambiguous formats such as
+    08/09/2021) returns None rather than a guess.
+    """
+    if text is None:
+        return None
+    s = str(text).strip()
+    if not s:
+        return None
+    if s[-1] in "Zz":
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def run_at_key(text):
+    """Sort key that orders run_at values chronologically.
+
+    Unparseable values rank oldest, so a malformed stamp can never be
+    chosen as the newest run.
+    """
+    dt = parse_run_at(text)
+    if dt is None:
+        return (0, datetime.min.replace(tzinfo=timezone.utc))
+    return (1, dt)
 
 # --- Row record types -----------------------------------------------------
 # Small frozen dataclasses so the report modules get attribute access
@@ -192,32 +228,35 @@ class ReportDB:
         )
         return _forecast(row) if row else None
 
+    # updated latest_forecast_for_station
     def latest_forecast_for_station(self, stnid: str) -> Optional[Forecast]:
         """The station's most recent forecast run across all its years.
 
         The station report prints "as of the latest run" figures -- the
         model version in force, the newest yield number -- so we need
-        the row with the newest run_at.  run_at is the ISO-ish timestamp
-        the analytics job stamps when it writes the forecast.
+        the row with the newest run_at.
 
-        We let SQLite pick the newest with MAX(run_at); the store keeps
-        run_at as TEXT and the analytics job writes it in a consistent
-        format, so the newest string is the newest run.
-        # MRD-238: latest-run selection compares run_at as text
+        The newest run is decided chronologically (parse_run_at), not by
+        comparing the run_at text, so a backfill stamped in a different
+        format cannot outrank a genuinely newer run. (MRD-238)
         """
-        row = self._one(
+        rows = self._rows(
             "SELECT stnid, year, run_at, yield_t, ndays, model "
-            "FROM forecast WHERE stnid=? "
-            "AND run_at = (SELECT MAX(run_at) FROM forecast WHERE stnid=?)",
-            (stnid, stnid),
+            "FROM forecast WHERE stnid=?",
+            (stnid,),
         )
-        return _forecast(row) if row else None
+        if not rows:
+            return None
+        return _forecast(max(rows, key=lambda r: run_at_key(r["run_at"])))
 
+    # updated latest_run_at
     def latest_run_at(self) -> Optional[str]:
         """Newest run_at anywhere in the store, for the 'generated from'
-        line in banners.  Same text-ordering assumption as above."""
-        row = self._one("SELECT MAX(run_at) AS m FROM forecast")
-        return row["m"] if row and row["m"] is not None else None
+        line in banners. Chronological, returned exactly as stored."""
+        rows = self._rows("SELECT run_at FROM forecast WHERE run_at IS NOT NULL")
+        if not rows:
+            return None
+        return max((r["run_at"] for r in rows), key=run_at_key)
 
     # -- daily series ------------------------------------------------------
     def daily_series(self, stnid: str, year: int) -> List[DailyRow]:

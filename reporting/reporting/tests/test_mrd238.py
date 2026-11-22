@@ -47,8 +47,27 @@ def test_latest_run_at_empty_store_is_none(tmp_path):
     with ReportDB(_make_db(tmp_path, [])) as db:
         assert db.latest_run_at() is None
 
-# current behaviour, the bug: run_at is compared as text, so the older run is picked because of the mixed format. This test is flipped in the fix commit.
-def test_mixed_format_current_behaviour_picks_older_run(tmp_path):
+# MRD-238 fixed: the chronologically newest run gets chosen, no matter the format
+def test_mixed_format_picks_chronologically_newest(tmp_path):
     with ReportDB(_make_db(tmp_path, MIXED_ROWS)) as db:
-        assert db.latest_forecast_for_station("GUELPH").model == "cropmod-4.2"
-        assert db.latest_run_at() == "2021-08-16T03:00:00"
+        assert db.latest_forecast_for_station("GUELPH").model == "cropmod-4.3"
+        assert db.latest_run_at() == "2021-08-16 09:00:00"
+
+def test_utc_offset_is_respected(tmp_path):
+    rows = [
+        # 08:00Z. text sorts higher but it is the earlier
+        ("GUELPH", 2021, "2021-08-16T08:00:00Z", 8.2, 200, "earlier"),
+        # 09:00Z (04:00 at -05:00). text sorts lower but it is the later 
+        ("GUELPH", 2020, "2021-08-16T04:00:00-05:00", 7.5, 200, "later"),
+    ]
+    with ReportDB(_make_db(tmp_path, rows)) as db:
+        assert db.latest_forecast_for_station("GUELPH").model == "later"
+
+
+def test_unparseable_run_at_never_wins(tmp_path):
+    rows = [
+        ("GUELPH", 2021, "2021-08-16T03:00:00", 8.2, 200, "good"),
+        ("GUELPH", 2020, "zzz-garbage", 7.5, 200, "bad"),
+    ]
+    with ReportDB(_make_db(tmp_path, rows)) as db:
+        assert db.latest_forecast_for_station("GUELPH").model == "good"

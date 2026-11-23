@@ -247,20 +247,19 @@ class ParallelOrchestrator:
 
     # -- step 3 ------------------------------------------------------------
     def persist(self, modelled: Sequence[Modelled],
-                run_at: str) -> Dict[str, Modelled]:
+                run_at: str) -> Dict[Tuple[str, int], Modelled]:
         """Write every modelled result to the store on the calling thread.
 
         Collects the completed runs before writing so persistence is a
         single serial sweep over a stable collection rather than a race of
         pool threads against one SQLite connection.
         """
-        # Collect the completed runs, newest write wins, before the serial
-        # persist sweep.  Keying the collection by station groups a
-        # station's runs together for the write and for the summary the
-        # caller reports.
-        collected: Dict[str, Modelled] = {}
+        # Collect the completed runs before the serial persist sweep.
+        # Runs are keyed by (station, year) so each station-year is
+        # persisted once (MRD-244).
+        collected: Dict[Tuple[str, int], Modelled] = {}
         for m in modelled:
-            collected[m.target.stnid] = m
+            collected[(m.target.stnid, m.target.year)] = m
 
         for m in collected.values():
             self.store.save_result(m.result, run_at=run_at)

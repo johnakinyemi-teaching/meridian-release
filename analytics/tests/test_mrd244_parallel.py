@@ -159,31 +159,28 @@ class ParallelForecastPersistenceTests(TestCase):
         )
 
     def test_one_station_two_years(self):
-        """Pin legacy behaviour: last completed year clobbers earlier years.
+        """MRD-244 is fixed: both years of one station are stored and reported.
 
-        The persist() dict keyed only by stnid means whichever year for
-        GUELPH completes last overwrites the other in collected{}, so only
-        one year reaches save_result.  Both completion orders are tested to
-        pin this race-dependent behaviour.  The dropped year must have no
-        daily rows in forecast_daily.
+        persist() keys collected by (stnid, year), so each station-year is
+        persisted once.  Both completion orders are checked.  The helper
+        sorts by (stnid, year) before comparing, so either arrival order
+        stores and reports older then newer.
         """
         older = modelled_forecast("GUELPH", 2024, 5.25)
         newer = modelled_forecast("GUELPH", 2025, 5.75)
         both_targets = [older.target, newer.target]
 
-        # Case 1: older completed first, newer last -> newer clobbers older.
-        # Only newer should be in the store; older must have no daily rows.
+        # Case 1: older completed first, newer last. Both years are kept.
         self.assert_forecasts_saved_and_reported(
             completed=[older, newer],
-            expected=[newer],
+            expected=[older, newer],
             targets=both_targets,
         )
 
-        # Case 2: newer completed first, older last -> older clobbers newer.
-        # Only older should be in the store; newer must have no daily rows.
+        # Case 2: newer completed first, older last. Both years are kept.
         self.assert_forecasts_saved_and_reported(
             completed=[newer, older],
-            expected=[older],
+            expected=[older, newer],
             targets=both_targets,
         )
 

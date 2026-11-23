@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 services/build/
 model/cropmod
+model/test_kernel
+model/trace_replay
 model/*.mod
 model/MERIDIAN.OUT
 model/MERIDIAN.DAT

@@ -33,7 +33,7 @@ OBJ = params.o weather.o pet.o soilwat.o runoff.o snow.o \
       runopts.o stress.o nbal_kernel.o nutrient.o nuptake.o nbal.o \
       cropmod.o
 
-.PHONY: all test clean
+.PHONY: all test test_mrd241 test_mrd239 clean
 
 all: cropmod
 
@@ -43,9 +43,16 @@ cropmod: $(OBJ)
 test_kernel: test_kernel.f90 nbal_kernel.o
 	$(FC) $(F90FLAGS) -o test_kernel test_kernel.f90 nbal_kernel.o
 
-test: cropmod test_kernel
-	./test_kernel
+test_nuptake: test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_kernel.o nutrient.o nuptake.o
+	$(FC) $(F90FLAGS) -o test_nuptake test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_kernel.o nutrient.o nuptake.o
+
+test_mrd241: cropmod test_kernel
 	./test_characterization.sh
+
+test_mrd239: cropmod test_nuptake
+	./test_characterization_mrd239.sh
+
+test: test_mrd241 test_mrd239
 
 # ---- base layers --------------------------------------------------
 params.o:   params.f90
@@ -95,4 +102,4 @@ cropmod.o:  cropmod.f runopts.o nbal.o
 	$(FC) $(FFLAGS) -c cropmod.f
 
 clean:
-	rm -f *.o *.mod cropmod test_kernel MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC
+	rm -f *.o *.mod cropmod test_kernel test_nuptake MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC

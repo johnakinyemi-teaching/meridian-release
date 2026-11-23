@@ -56,7 +56,9 @@ $(function () {
                         '</td><td>' + esc(r.run_at) + '</td></tr>';
             });
             $('#forecast tbody').html(html || '<tr><td colspan="5">no forecast run</td></tr>');
-            if (rows.length) { loadSeries(stn, rows[rows.length - 1].year); }
+            if (rows.length) {
+                loadSeries(stn, window.Meridian.Forecast.currentRun(rows).year);
+            }
         });
     }
 

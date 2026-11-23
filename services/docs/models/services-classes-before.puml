@@ -1,0 +1,102 @@
+@startuml services-classes-before
+' Services / API data-access classes as they are on main (the meridian-evolution
+' snapshot), before Relay's A4 tickets MRD-166, MRD-247 and MRD-77 (Java half).
+' Reverse-engineered from services/src/ca/meridian on origin/main.
+' Only the classes those tickets touch, plus their direct neighbours.
+!pragma layout smetana
+title Services data access: BEFORE (main, meridian-evolution)
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam class {
+  BackgroundColor<<external>> #EEEEEE
+  BackgroundColor<<context>> #FFFFFF
+}
+
+package "ca.meridian.api" {
+  class ApiServer <<context>>
+  class ForecastHandler {
+    -db : Db
+    +handle(ex)
+    ~parseQuery(raw) : Map
+  }
+  class SeriesHandler {
+    -db : Db
+    +handle(ex)
+  }
+  class ForecastV2 <<context>> {
+    -db : DbClient
+    -cache : ForecastCache
+  }
+}
+
+package "ca.meridian.admin" {
+  class AdminCli <<context>> {
+    ~evict(station, year)
+  }
+}
+
+package "ca.meridian.db" {
+  class Db {
+    -dbPath : String
+    +queryJson(sql) : String
+    +queryColumn(sql) : List<String>
+  }
+  class DbClient {
+    -db : Db
+    -retries : int
+    +raw() : Db
+    +query(sql) : ResultSetLite
+    +queryJson(sql) : String
+    -isTransient(e) : boolean
+  }
+  class ForecastCache {
+    -db : DbClient
+    -ttlMillis : long
+    -entries : ConcurrentHashMap<String, Entry>
+    +summary(station) : Summary
+    +invalidate(station, year)
+    +clear()
+    +size() : int
+    -load(station) : Summary
+    -key(station) : String
+    -key(station, year) : String
+  }
+  class QueryBuilder <<context>>
+}
+
+class "sqlite3 command-line program\n(started once per query)" as Sqlite3 <<external>>
+
+ApiServer ..> Db : creates
+ApiServer ..> DbClient : creates
+ApiServer ..> ForecastCache : creates
+ForecastHandler --> Db
+SeriesHandler --> Db
+ForecastV2 --> DbClient
+ForecastV2 --> ForecastCache
+AdminCli --> DbClient
+AdminCli ..> ForecastCache : creates its own
+DbClient --> Db
+ForecastCache --> DbClient
+ForecastCache ..> QueryBuilder
+Db ..> Sqlite3 : ProcessBuilder("sqlite3", "-json", path, sql)
+
+note right of ForecastHandler
+  MRD-166: the station is pasted into
+  the SQL text: "... stnid = '" + station + "'"
+  SeriesHandler does the same for station and year.
+end note
+
+note bottom of ForecastCache
+  MRD-247: entries are stored under key(station),
+  but invalidate() removes key(station, year).
+  That key is never stored, so eviction does nothing.
+  The admin tool also runs in its own JVM, so it could
+  never reach the server's cache anyway.
+end note
+
+note right of Db
+  MRD-77: needs the sqlite3 program on the PATH.
+  A failure is reported as "sqlite3 exited N";
+  DbClient's retry looks for "exited 5".
+end note
+@enduml

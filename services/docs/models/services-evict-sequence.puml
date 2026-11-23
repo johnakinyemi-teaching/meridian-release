@@ -1,0 +1,49 @@
+@startuml services-evict-sequence
+' How an eviction reaches the running server after MRD-247.
+' Before the fix the admin tool's invalidate() removed a key that was never stored
+' and, being a separate JVM, could not reach the server's cache at all.
+title Cache eviction across two JVMs (MRD-247, after)
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+
+box "Admin tool JVM (AdminCli evict GUELPH 2025)" #F4F4F4
+  participant AdminCli
+  participant "ForecastCache\n(admin's own)" as AC
+  participant "EvictionMarks\n(admin's own)" as AM
+end box
+
+database "<store path>.evict/\nGUELPH" as Notes
+
+box "Server JVM (ApiServer, :8081)" #F4F4F4
+  participant ForecastV2
+  participant "ForecastCache\n(server's)" as SC
+  participant "EvictionMarks\n(server's)" as SM
+end box
+
+== Admin tool: evict ==
+AdminCli -> AC : summary("GUELPH")  (warm-up)
+AdminCli -> AC : invalidate("GUELPH", 2025)
+AC -> AC : entries.remove(key("GUELPH"))
+AC -> AM : mark("GUELPH")
+AM -> Notes : write temp file, then atomic move\nnew random token
+note right of AM
+  Throws IOException if the note cannot be written.
+  AdminCli reports that instead of claiming
+  an eviction that did not reach the server.
+end note
+
+== Server: next /api/v2/forecast read ==
+ForecastV2 -> SC : summary("GUELPH")
+SC -> SM : token("GUELPH")
+SM -> Notes : read
+SM --> SC : token (NONE if no note, UNKNOWN on trouble)
+alt entry cached AND younger than TTL AND token is known AND entry.token == token
+  SC --> ForecastV2 : cached Summary
+else otherwise (evicted, expired, or token unreadable)
+  SC -> SC : load("GUELPH")  (SELECT COUNT, MAX, AVG ... via DbClient)
+  opt token is not UNKNOWN
+    SC -> SC : entries.put(key, Entry(fresh, now, token))
+  end
+  SC --> ForecastV2 : fresh Summary
+end
+@enduml

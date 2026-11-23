@@ -1,0 +1,126 @@
+@startuml services-classes-after
+' Services / API data-access classes on team/relay after Relay's A4 tickets
+' MRD-166, MRD-247 and MRD-77 (Java half). Compare services-classes-before.puml.
+' Reverse-engineered from services/src/ca/meridian on origin/team/relay (Nov 21, 2026).
+' Green = new, yellow = changed, grey = outside the services code, white = unchanged context.
+!pragma layout smetana
+title Services data access: AFTER (team/relay, MRD-166 + MRD-247 + MRD-77)
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam class {
+  BackgroundColor<<new>> #D5F0D5
+  BackgroundColor<<changed>> #FFF3C4
+  BackgroundColor<<external>> #EEEEEE
+  BackgroundColor<<context>> #FFFFFF
+}
+
+package "ca.meridian.api" {
+  class ApiServer <<context>>
+  class ForecastHandler <<changed>> {
+    -db : Db
+    +handle(ex)
+    ~parseQuery(raw) : Map
+  }
+  class SeriesHandler <<changed>> {
+    -db : Db
+    +handle(ex)
+  }
+  class ForecastV2 <<context>> {
+    -db : DbClient
+    -cache : ForecastCache
+  }
+}
+
+package "ca.meridian.admin" {
+  class AdminCli <<context>> {
+    ~evict(station, year)
+  }
+}
+
+package "ca.meridian.db" {
+  class Db <<changed>> {
+    -dbPath : String
+    +path() : String
+    +queryJson(sql) : String
+    +queryJson(sql, params : Object...) : String
+    -open() : Connection
+    -resultCode(e) : int
+    -asTheProgramPrintedIt(rows, store) : String
+  }
+  class DbClient <<context>> {
+    -db : Db
+    -retries : int
+    +raw() : Db
+    +query(sql) : ResultSetLite
+    +queryJson(sql) : String
+    -isTransient(e) : boolean
+  }
+  class ForecastCache <<changed>> {
+    -db : DbClient
+    -ttlMillis : long
+    -marks : EvictionMarks
+    -entries : ConcurrentHashMap<String, Entry>
+    +summary(station) : Summary
+    +invalidate(station, year)
+    +clear()
+    +size() : int
+    -load(station) : Summary
+    -key(station) : String
+  }
+  class EvictionMarks <<new>> {
+    ~{static} UNKNOWN : String
+    ~{static} NONE : String
+    -dir : Path
+    ~token(station) : String
+    ~mark(station)
+    ~{static} isUnknown(token) : boolean
+  }
+  class QueryBuilder <<context>>
+}
+
+class "SQLite JDBC driver 3.46.1.3\nservices/lib/sqlite-jdbc-3.46.1.3.jar\n(runs inside the service's JVM)" as Driver <<external>>
+class "<store path>.evict/<station>\none small note file per station" as Notes <<external>>
+
+ApiServer ..> Db : creates
+ApiServer ..> DbClient : creates
+ApiServer ..> ForecastCache : creates
+ForecastHandler --> Db : queryJson(sql, bound values)
+SeriesHandler --> Db : queryJson(sql, bound values)
+ForecastV2 --> DbClient
+ForecastV2 --> ForecastCache
+AdminCli --> DbClient
+AdminCli ..> ForecastCache : creates its own
+DbClient --> Db
+ForecastCache --> DbClient
+ForecastCache ..> QueryBuilder
+ForecastCache *-- EvictionMarks : one per cache
+EvictionMarks ..> Notes : reads (server), writes (admin tool)
+Db ..> Driver : DriverManager.getConnection("jdbc:sqlite:" + path)
+ForecastCache ..> Db : db.raw().path() locates the notes folder
+
+note right of ForecastHandler
+  MRD-166: the station (and the year on /api/series)
+  is bound to ?1 / ?2, never written into the SQL.
+  Responses are meant to be byte-identical to before.
+end note
+
+note bottom of ForecastCache
+  MRD-247: one entry per station, key(station) for
+  reads and evictions alike. Each entry remembers the
+  eviction token it was loaded under. invalidate() now
+  throws IOException if the note cannot be written.
+end note
+
+note right of Db
+  MRD-77: no sqlite3 program. The error text is still
+  "sqlite3 exited N", with N = SQLite's result code,
+  because DbClient.isTransient() matches "exited 5".
+  queryColumn() is gone; nothing called it.
+end note
+
+note bottom of EvictionMarks
+  Package-private. Only valid station ids become file names.
+  Any trouble reading a note gives UNKNOWN, which makes
+  the cache load fresh and never cache.
+end note
+@enduml

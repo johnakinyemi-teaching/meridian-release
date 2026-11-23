@@ -70,8 +70,8 @@ C     is NOT checked (see ticket MRD-118).
       CALL WATBAL (NDAYS, IDOY, TMAX, TMIN, RAIN, SRAD, XLAT,
      &             AWC, RDEPTH, SW, ET, DRAIN)
 
-      CALL GROWTH (NDAYS, IDOY, TMAX, TMIN, SRAD, SW, AWC, XLAT,
-     &             BIOM, XLAI, YIELD)
+      CALL GROWTH (NDAYS, IDOY, TMAX, TMIN, SRAD, SW, AWC,
+     &             RDEPTH, XLAT, BIOM, XLAI, YIELD)
 
       OPEN (UNIT=20, FILE='MERIDIAN.OUT', STATUS='UNKNOWN')
       WRITE (20, 910) STNID, IYEAR, NDAYS

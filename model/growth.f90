@@ -22,8 +22,9 @@
 !  fraction WATBAL forms; that disagreement is MRD-204 and is left as it
 !  is on purpose, pending the validation harness (MRD-231).
 ! ======================================================================
-subroutine growth(n, idoy, tmax, tmin, srad, sw, awc, xlat, biom, xlai, yield)
+subroutine growth(n, idoy, tmax, tmin, srad, sw, awc, rdepth, xlat, biom, xlai, yield)
    use crop_params, only : RUE0
+   use water_stress, only : calculate_stress
    use phenology,   only : pheno_t, pheno_reset, pheno_advance
    use canopy,      only : canopy_t, canopy_reset, canopy_update, &
                            light_interception
@@ -34,7 +35,7 @@ subroutine growth(n, idoy, tmax, tmin, srad, sw, awc, xlat, biom, xlai, yield)
    integer, intent(in)  :: n
    integer, intent(in)  :: idoy(n)
    real,    intent(in)  :: tmax(n), tmin(n), srad(n), sw(n)
-   real,    intent(in)  :: awc, xlat
+   real,    intent(in)  :: awc, rdepth, xlat
    real,    intent(out) :: biom(n), xlai(n)
    real,    intent(out) :: yield
 
@@ -58,20 +59,8 @@ subroutine growth(n, idoy, tmax, tmin, srad, sw, awc, xlat, biom, xlai, yield)
       call pheno_advance(ph, tmax(i), tmin(i), xlat, idoy(i), tt_eff)
 
       ! ---- water stress on assimilation ------------------------------
-      ! Uses the same 50 percent threshold as WATBAL but computes the
-      ! fraction differently because AWC here is per-unit-depth.  See
-      ! MRD-204.  The first line is the historical stress fraction and
-      ! must not be "corrected" to match WATBAL.
-      if (awc > 0.0) then
-         stress = min(sw(i) / (awc * 100.0), 1.0)
-      else
-         stress = 1.0
-      end if
-      if (stress > 0.5) then
-         stress = 1.0
-      else
-         stress = stress / 0.5
-      end if
+      ! Use the same whole-profile water fraction as WATBAL (MRD-204).
+      stress = calculate_stress(sw(i), awc, rdepth)
 
       ! ---- leaf area and light interception --------------------------
       ! CANOPY replaces the old inline sine LAI.  Expansion is throttled

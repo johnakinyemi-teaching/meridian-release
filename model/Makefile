@@ -29,7 +29,7 @@ FFLAGS  = -O2 -std=legacy -ffixed-line-length-72 -w
 F90FLAGS= -O2 -w
 
 OBJ = params.o weather.o pet.o soilwat.o runoff.o snow.o \
-      phenology.o canopy.o partition.o waterbal.o growth.o \
+      phenology.o canopy.o partition.o water_stress.o waterbal.o growth.o \
       runopts.o stress.o nbal_kernel.o nutrient.o nuptake.o nbal.o \
       cropmod.o
 
@@ -63,7 +63,9 @@ canopy.o:    canopy.f90 params.o phenology.o
 	$(FC) $(F90FLAGS) -c canopy.f90
 partition.o: partition.f90 params.o phenology.o
 	$(FC) $(F90FLAGS) -c partition.f90
-growth.o:    growth.f90 params.o phenology.o canopy.o partition.o
+water_stress.o: water_stress.f90
+	$(FC) $(F90FLAGS) -c water_stress.f90
+growth.o:    growth.f90 params.o phenology.o canopy.o partition.o water_stress.o
 	$(FC) $(F90FLAGS) -c growth.f90
 
 # ---- optional nitrogen path (compiled, not on the default run) ----
@@ -85,5 +87,11 @@ nbal.o:       nbal.f90 soilwat.o pet.o runoff.o snow.o nutrient.o \
 cropmod.o:  cropmod.f runopts.o nbal.o
 	$(FC) $(FFLAGS) -c cropmod.f
 
+test_water_stress: water_stress.o test_water_stress.f90
+	$(FC) $(F90FLAGS) -o test_water_stress test_water_stress.f90 water_stress.o
+
+test: test_water_stress
+	./test_water_stress
+
 clean:
-	rm -f *.o *.mod cropmod MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC
+	rm -f *.o *\*.mod cropmod test_water_stress MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC

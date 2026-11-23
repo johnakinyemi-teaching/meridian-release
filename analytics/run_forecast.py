@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Nightly forecast entry point.  Invoked from cron on the app host."""
 import argparse
+import logging
 import os
 import sys
 
@@ -22,6 +23,11 @@ def main():
     ap.add_argument("--workers", type=int, default=None,
                     help="max concurrent model runs with --parallel")
     args = ap.parse_args()
+
+    # Advisory output-QC findings (MRD-246) are logged to stderr.  stdout
+    # stays exactly the per-forecast lines below, which CI compares.
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr,
+                        format="%(levelname)s %(name)s: %(message)s")
 
     store = Store(args.db)
     try:

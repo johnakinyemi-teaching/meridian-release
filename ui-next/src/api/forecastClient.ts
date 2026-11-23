@@ -27,7 +27,16 @@
 //      both "YYYY-MM-DDTHH:MM:SS" and "YYYY-MM-DD HH:MM:SS" are accepted, and
 //      as text "T" sorts after " ", which picks the wrong run.
 //   3. If `run_at` is also equal, or will not parse, the row returned last wins.
+//      The rows are scanned in order, so this fallback is sequential, not a
+//      global "latest run_at wins": for same-year rows [09:00, unparseable,
+//      02:00] the unparseable row displaces 09:00, then 02:00 displaces it, so
+//      02:00 is current. The legacy console does the same (MRD-253).
 //   4. Yield is shown to three decimals (legacy Meridian.Fmt.yield_t).
+//
+// Rules 1-3 are defensive. Today `forecast` has PRIMARY KEY (stnid, year) and
+// /api/forecast?station= returns rows ORDER BY year, so the service sends one
+// row per year in ascending order: out-of-order or same-year rows cannot reach
+// this client yet. On real data the only visible effect of MRD-252 is rule 4.
 //
 // Before MRD-252 this client broke same-year ties on the `run_at` TEXT and
 // printed two decimals, while the legacy console took the last-returned row.
@@ -114,7 +123,8 @@ function runAtMs(runAt: string): number {
 /**
  * The forecast run "in force" for a station, by the shared rule (see the
  * header): greatest `year`; within that year the latest `run_at` timestamp;
- * if `run_at` is equal or unparseable, the row returned last.
+ * if `run_at` is equal or unparseable, the later row (applied sequentially, so
+ * an unparseable row in between can let an earlier run_at win).
  */
 export function currentForecastRun(rows: ForecastRow[] | null): ForecastRow | null {
   if (!rows || rows.length === 0) return null;

@@ -90,6 +90,16 @@ describe('shared rule: current run', () => {
     expect(currentForecastRun([bad, good])?.yield_t).toBe(4.1);
   });
 
+  it('same year, three rows with an unparseable one between: the fallback is sequential', () => {
+    // Watchtower pins the same case in dashboard/test/forecast-rule.test.js.
+    // 09:00 is the latest timestamp, but 'invalid' displaces it (unparseable ->
+    // later row wins), then 02:00 displaces 'invalid' the same way.
+    const nine = run(2025, 5.1, '2025-08-01T09:00:00');
+    const bad = run(2025, 5.2, 'invalid');
+    const two = run(2025, 5.3, '2025-08-01T02:00:00');
+    expect(currentForecastRun([nine, bad, two])).toBe(two);
+  });
+
   it('an unparseable run_at never outranks a greater year', () => {
     const rows = [run(2024, 5.0, 'garbage'), run(2023, 4.1, '2023-07-01T02:00:00')];
     expect(currentForecastRun(rows)?.year).toBe(2024);

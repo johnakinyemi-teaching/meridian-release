@@ -1,0 +1,6 @@
+MERIDIAN CROPMOD V2.3  STN=TESTSTN   YEAR=2025  NDAYS=   3
+ DOY      SW      ET   DRAIN    BIOM     LAI
+  10   85.45   4.550   0.000     0.0   0.000
+  11   81.62   3.833   0.000     0.0   0.000
+  12   79.30   4.316   0.000     0.0   0.000
+YIELD      0.000

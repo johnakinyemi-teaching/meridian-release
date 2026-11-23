@@ -15,7 +15,6 @@ skinparam class {
 }
 
 package "ca.meridian.api" {
-  class ApiServer <<context>>
   class ForecastHandler <<changed>> {
     -db : Db
     +handle(ex)
@@ -81,9 +80,6 @@ package "ca.meridian.db" {
 class "SQLite JDBC driver 3.46.1.3\nservices/lib/sqlite-jdbc-3.46.1.3.jar\n(runs inside the service's JVM)" as Driver <<external>>
 class "<store path>.evict/<station>\none small note file per station" as Notes <<external>>
 
-ApiServer ..> Db : creates
-ApiServer ..> DbClient : creates
-ApiServer ..> ForecastCache : creates
 ForecastHandler --> Db : queryJson(sql, bound values)
 SeriesHandler --> Db : queryJson(sql, bound values)
 ForecastV2 --> DbClient
@@ -96,7 +92,6 @@ ForecastCache ..> QueryBuilder
 ForecastCache *-- EvictionMarks : one per cache
 EvictionMarks ..> Notes : reads (server), writes (admin tool)
 Db ..> Driver : DriverManager.getConnection("jdbc:sqlite:" + path)
-ForecastCache ..> Db : db.raw().path() locates the notes folder
 
 note right of ForecastHandler
   MRD-166: the station (and the year on /api/series)
@@ -106,7 +101,8 @@ end note
 
 note bottom of ForecastCache
   MRD-247: one entry per station, key(station) for
-  reads and evictions alike. Each entry remembers the
+  reads and evictions alike (the notes folder is found
+  through db.raw().path()). Each entry remembers the
   eviction token it was loaded under. invalidate() now
   throws IOException if the note cannot be written.
 end note

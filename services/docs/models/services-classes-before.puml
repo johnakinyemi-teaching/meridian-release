@@ -13,7 +13,6 @@ skinparam class {
 }
 
 package "ca.meridian.api" {
-  class ApiServer <<context>>
   class ForecastHandler {
     -db : Db
     +handle(ex)
@@ -66,9 +65,6 @@ package "ca.meridian.db" {
 
 class "sqlite3 command-line program\n(started once per query)" as Sqlite3 <<external>>
 
-ApiServer ..> Db : creates
-ApiServer ..> DbClient : creates
-ApiServer ..> ForecastCache : creates
 ForecastHandler --> Db
 SeriesHandler --> Db
 ForecastV2 --> DbClient

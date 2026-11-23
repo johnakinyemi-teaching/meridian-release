@@ -53,8 +53,10 @@ Done: **5** · Stub: **6** · Total: **11**.
   `src/api/forecastClient.ts`, rather than the canonical `endpoints.ts`. The
   service never computes a "current" run, so each console derives it; since
   **MRD-252** (with MRD-253 on the legacy side) both apply one shared rule:
-  greatest year, then latest `run_at` timestamp, then last-returned row, and
-  yield to three decimals. A change to that rule has to be made in both
+  greatest year, then latest `run_at` timestamp, then last-returned row
+  (applied sequentially), and yield to three decimals. Today the service sends
+  one row per year in ascending order, so on real data only the 3 dp change is
+  visible; the rest is defensive. A change to that rule has to be made in both
   consoles. See the header of `forecastClient.ts`.
 
 ## Why each remaining screen is blocked

@@ -14,6 +14,13 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Tests run in UTC on every machine, as they do in CI. src/util/doy.test.ts
+// fails in time zones with DST (dateToDoy divides by 86,400,000, so the
+// 23-hour day is off by one). That bug predates MRD-252 and is not fixed here;
+// this pin only makes `npm test` give the same result everywhere. Set here
+// rather than as `TZ=UTC vitest run` so the script also works on Windows.
+if (process.env.VITEST) process.env.TZ = 'UTC';
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const apiBase = env.VITE_API_BASE || 'http://localhost:8081';

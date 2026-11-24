@@ -1,14 +1,13 @@
 ! ======================================================================
-!  TEST_NUPTAKE - Characterization test suite for NUPTAKE / NUTRIENT (MRD-239)
-!  Author: Liene (Canopy Team - Task 1 Safety Net)
+!  TEST_NUPTAKE - Validation & regression test suite for NUPTAKE / NUTRIENT (MRD-239)
+!  Original safety net: Liene (Task 1); updated for MRD-239 fix: Unsur (Task 2)
 !
-!  Pins current behaviour of nutrient conversion and uptake before any
-!  production changes for MRD-239:
-!    1. Unit conversion discrepancy between NUTRIENT (NAREA=10.0) and
-!       NUPTAKE (GM2_TO_KGHA=100.0, a 10x factor disagreement).
+!  Verifies fixed MRD-239 behaviour of nutrient conversion and uptake:
+!    1. Unit conversion agreement between NUTRIENT (NAREA=10.0) and
+!       NUPTAKE (GM2_TO_KGHA=NAREA=10.0, 1:1 agreement; fails on 10x regression).
 !    2. Stage-dependent nitrogen demand calculations (n_demand_gm2).
-!    3. Soil pool drawdown under the current 100.0 factor.
-!    4. Supply limitation and premature soil pool depletion.
+!    3. Soil pool drawdown under the corrected 10.0 kg N ha-1 per g N m-2 factor.
+!    4. Supply limitation and soil pool depletion.
 !    5. Nitrogen stress factor calculation and bounds (n_stress_factor).
 !    6. Edge cases: zero demand, negative demand, empty pools.
 !    7. Layer-wise root weighting and NH4/NO3 ion partitioning.
@@ -31,7 +30,7 @@ program test_nuptake
    write (*, '(A)') ' Running NUPTAKE / MRD-239 Characterization Tests '
    write (*, '(A)') '=================================================='
 
-   call test_conversion_discrepancy(passed, failed)
+   call test_conversion_agreement(passed, failed)
    call test_n_demand_stages(passed, failed)
    call test_uptake_pool_drawdown(passed, failed)
    call test_depletion_and_supply(passed, failed)
@@ -53,18 +52,17 @@ program test_nuptake
 contains
 
    ! -------------------------------------------------------------------
-   ! Test 1: Pinned units & 10x discrepancy contract (MRD-239)
+   ! Test 1: Units agreement contract (MRD-239)
    !
    ! NUTRIENT specifies NAREA = 10.0 (1 g m-2 = 10 kg ha-1).
-   ! NUPTAKE currently uses GM2_TO_KGHA = 100.0.
-   ! This test pins the current behavior: n_uptake extracts 100.0 kg/ha
-   ! for 1.0 g/m2 demand, disagreeing with NAREA by exactly a factor of 10.
+   ! NUPTAKE must convert with NAREA = 10.0 so n_uptake extracts 10.0 kg/ha
+   ! for 1.0 g/m2 demand (ratio = 1.0). Fails if the 10x bug regresses.
    ! -------------------------------------------------------------------
-   subroutine test_conversion_discrepancy(pass_cnt, fail_cnt)
+   subroutine test_conversion_agreement(pass_cnt, fail_cnt)
       integer, intent(inout) :: pass_cnt, fail_cnt
       type(npool_t) :: p
       real :: demand, taken, supplied
-      real :: effective_rate, discrepancy
+      real :: effective_rate, ratio
       integer :: k
       logical :: ok
       real, parameter :: EPS = 1.0e-5
@@ -80,25 +78,25 @@ contains
       call n_uptake(p, demand, taken, supplied)
 
       effective_rate = taken / demand
-      discrepancy    = effective_rate / NAREA
+      ratio          = effective_rate / NAREA
 
       ok = .true.
       if (abs(NAREA - 10.0) .gt. EPS) ok = .false.
-      if (abs(effective_rate - 100.0) .gt. EPS) ok = .false.
-      if (abs(discrepancy - 10.0) .gt. EPS) ok = .false.
+      if (abs(effective_rate - 10.0) .gt. EPS) ok = .false.
+      if (abs(ratio - 1.0) .gt. EPS) ok = .false.
       if (abs(supplied - 1.0) .gt. EPS) ok = .false.
 
       if (ok) then
-         write (*, '(A)') '  PASS: test_conversion_discrepancy (pinned 10x gap: NAREA=10.0 vs GM2_TO_KGHA=100.0)'
+         write (*, '(A)') '  PASS: test_conversion_agreement (NAREA=10.0 matches n_uptake 10.0 kg/ha per g/m2)'
          pass_cnt = pass_cnt + 1
       else
-         write (*, '(A)') '  FAIL: test_conversion_discrepancy mismatch'
+         write (*, '(A)') '  FAIL: test_conversion_agreement mismatch (MRD-239 regression!)'
          write (*, '(A, F8.2)') '    NAREA:          ', NAREA
          write (*, '(A, F8.2)') '    Effective rate: ', effective_rate
-         write (*, '(A, F8.2)') '    Discrepancy:    ', discrepancy
+         write (*, '(A, F8.2)') '    Ratio:          ', ratio
          fail_cnt = fail_cnt + 1
       end if
-   end subroutine test_conversion_discrepancy
+   end subroutine test_conversion_agreement
 
    ! -------------------------------------------------------------------
    ! Test 2: Phenology-dependent crop N demand (n_demand_gm2)
@@ -148,12 +146,12 @@ contains
    end subroutine test_n_demand_stages
 
    ! -------------------------------------------------------------------
-   ! Test 3: Soil pool drawdown under current 100.0 factor (ample pool)
+   ! Test 3: Soil pool drawdown under fixed 10.0 factor (ample pool)
    !
    ! Starting profile: 12 kg NH4 + 28 kg NO3 = 40 kg N ha-1 mineral N.
    ! Demand = 0.20 g N m-2.
-   ! Under current code: dem_kgha = 0.20 * 100.0 = 20.0 kg N ha-1.
-   ! Taken must be 20.0 kg N ha-1, remaining mineral pool must be 20.0.
+   ! Under fixed MRD-239 code: dem_kgha = 0.20 * 10.0 = 2.0 kg N ha-1.
+   ! Taken must be 2.0 kg N ha-1, remaining mineral pool must be 38.0.
    ! -------------------------------------------------------------------
    subroutine test_uptake_pool_drawdown(pass_cnt, fail_cnt)
       integer, intent(inout) :: pass_cnt, fail_cnt
@@ -172,12 +170,12 @@ contains
 
       ok = .true.
       if (abs(initial_mineral - 40.0) .gt. EPS) ok = .false.
-      if (abs(taken - 20.0) .gt. EPS) ok = .false.
+      if (abs(taken - 2.0) .gt. EPS) ok = .false.
       if (abs(supplied - 1.0) .gt. EPS) ok = .false.
-      if (abs(final_mineral - 20.0) .gt. EPS) ok = .false.
+      if (abs(final_mineral - 38.0) .gt. EPS) ok = .false.
 
       if (ok) then
-         write (*, '(A)') '  PASS: test_uptake_pool_drawdown (0.20 g/m2 extracts 20.0 kg/ha under 100x)'
+         write (*, '(A)') '  PASS: test_uptake_pool_drawdown (0.20 g/m2 extracts 2.0 kg/ha under 10x)'
          pass_cnt = pass_cnt + 1
       else
          write (*, '(A)') '  FAIL: test_uptake_pool_drawdown failed'
@@ -189,16 +187,16 @@ contains
    end subroutine test_uptake_pool_drawdown
 
    ! -------------------------------------------------------------------
-   ! Test 4: Current soil depletion and supply limitation under 100.0 factor
+   ! Test 4: Soil depletion and supply limitation under fixed 10.0 factor
    !
    ! Available mineral N = 25.0 kg N ha-1 across 5 layers (5.0 kg each).
-   ! Demand = 0.50 g N m-2 -> dem_kgha = 50.0 kg N ha-1 under current code (100x).
+   ! Demand = 5.0 g N m-2 -> dem_kgha = 50.0 kg N ha-1 under fixed 10x.
    ! Root fraction weighting: ROOT_FRAC = (/0.40, 0.26, 0.17, 0.11, 0.06/).
    ! Layers 1-4 demand exceeds 5.0 kg/ha, so each yields its full 5.0 kg/ha.
    ! Layer 5 demand = 50.0 * 0.06 = 3.0 kg/ha, leaving 2.0 kg/ha remaining.
    ! Total taken = 23.0 kg N ha-1, supplied = 23.0 / 50.0 = 0.460.
    ! Remaining mineral N = 2.0 kg N ha-1.
-   ! Furthermore, with demand = 1.0 g N m-2 (dem_kgha = 100.0 kg/ha),
+   ! Furthermore, with demand = 10.0 g N m-2 (dem_kgha = 100.0 kg/ha),
    ! all layers including layer 5 (want=6.0 > 5.0) are completely depleted:
    ! taken = 25.0, supplied = 0.250, remaining = 0.0.
    ! -------------------------------------------------------------------
@@ -217,13 +215,13 @@ contains
          p%no3(k)  = 4.0
       end do
 
-      demand = 0.50   ! 0.50 g N m-2 -> 50.0 kg N ha-1 under 100x
+      demand = 5.0    ! 5.0 g N m-2 -> 50.0 kg N ha-1 under 10x
       call n_uptake(p, demand, taken, supplied)
 
       remaining_mineral = n_mineral_total(p)
 
       ok = .true.
-      ! Under current single-pass draw:
+      ! Under single-pass draw:
       ! Layer 1: want=20.0, take=5.0
       ! Layer 2: want=13.0, take=5.0
       ! Layer 3: want=8.5,  take=5.0
@@ -233,13 +231,13 @@ contains
       if (abs(supplied - 0.460) .gt. EPS) ok = .false.
       if (abs(remaining_mineral - 2.0) .gt. EPS) ok = .false.
 
-      ! Part B: Complete exhaustion of all layers with higher demand (1.0 g N m-2)
+      ! Part B: Complete exhaustion of all layers with higher demand (10.0 g N m-2)
       do k = 1, NLAYERS
          p%orgn(k) = 500.0
          p%nh4(k)  = 1.0
          p%no3(k)  = 4.0
       end do
-      call n_uptake(p, 1.0, taken, supplied)
+      call n_uptake(p, 10.0, taken, supplied)
       if (abs(taken - 25.0) .gt. EPS) ok = .false.
       if (abs(supplied - 0.250) .gt. EPS) ok = .false.
       if (abs(n_mineral_total(p) - 0.0) .gt. EPS) ok = .false.
@@ -335,7 +333,7 @@ contains
    !
    ! Uniform available mineral N in each layer (100.0 kg/ha: 20 NH4 + 80 NO3).
    ! Weight = ROOT_FRAC(k) * 100.0 -> layer fraction = ROOT_FRAC(k).
-   ! Demand = 0.10 g N m-2 -> dem_kgha = 10.0 kg N ha-1 under current code.
+   ! Demand = 1.0 g N m-2 -> dem_kgha = 10.0 kg N ha-1 under fixed 10x.
    ! Layer k draw = 10.0 * ROOT_FRAC(k), split 20% NH4 and 80% NO3.
    ! -------------------------------------------------------------------
    subroutine test_layer_partitioning(pass_cnt, fail_cnt)
@@ -353,7 +351,7 @@ contains
          p%no3(k)  = 80.0
       end do
 
-      demand = 0.10   ! 0.10 g N m-2 -> 10.0 kg N ha-1
+      demand = 1.0    ! 1.0 g N m-2 -> 10.0 kg N ha-1 under 10x
       call n_uptake(p, demand, taken, supplied)
 
       ok = .true.

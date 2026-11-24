@@ -5,7 +5,7 @@
 #
 #  Verifies:
 #    1. Pure unit tests for nuptake/nutrient (test_nuptake binary)
-#       pinning the current 10x discrepancy (NAREA=10.0 vs GM2_TO_KGHA=100.0)
+#       verifying NAREA=10.0 agreement (GM2_TO_KGHA = NAREA = 10.0, MRD-239)
 #    2. Default cropmod run preserves the golden oracle (YIELD = 5.951)
 #    3. Default run generates neither MERIDIAN.NUT nor MERIDIAN.TRC
 #    4. Latent ticket check: MERIDIAN_NBAL=1 does NOT alter cropmod output (byte-identical)

@@ -47,10 +47,10 @@ test_nuptake: test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_ker
 	$(FC) $(F90FLAGS) -o test_nuptake test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_kernel.o nutrient.o nuptake.o
 
 test_mrd241: cropmod test_kernel
-	./test_characterization.sh
+	bash ./test_characterization.sh
 
 test_mrd239: cropmod test_nuptake
-	./test_characterization_mrd239.sh
+	bash ./test_characterization_mrd239.sh
 
 test: test_mrd241 test_mrd239
 

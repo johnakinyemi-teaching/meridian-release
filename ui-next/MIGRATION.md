@@ -50,11 +50,14 @@ Done: **5** · Stub: **6** · Total: **11**.
   `dashboard/js/views/quality.js`; a revision has to be made in both consoles.
 - **Compare** — multi-station yield table plus a small-multiple `SeriesChart`
   overlay. Forecast data is fetched through a **second** forecast client,
-  `src/api/forecastClient.ts`, rather than the canonical `endpoints.ts`. That
-  client has drifted from the legacy console's `dashboard/js/api.js` in two
-  documented ways (current-run selection and yield formatting), so the two
-  consoles can show a different "current" yield for the same station. See the
-  header of `forecastClient.ts` and **MRD-241**.
+  `src/api/forecastClient.ts`, rather than the canonical `endpoints.ts`. The
+  service never computes a "current" run, so each console derives it; since
+  **MRD-252** (with MRD-253 on the legacy side) both apply one shared rule:
+  greatest year, then latest `run_at` timestamp, then last-returned row
+  (applied sequentially), and yield to three decimals. Today the service sends
+  one row per year in ascending order, so on real data only the 3 dp change is
+  visible; the rest is defensive. A change to that rule has to be made in both
+  consoles. See the header of `forecastClient.ts`.
 
 ## Why each remaining screen is blocked
 

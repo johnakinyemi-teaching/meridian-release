@@ -63,10 +63,9 @@ jobs:
           npm ci
           npm run typecheck
 
-      # ui-next's `npm test` is a stub that prints a TODO and exits 0, so it is
-      # not run here: a command that exits without running anything must not be
-      # able to turn this job green. When Frontier stands the runner up, replace
-      # this step with `npm test`.
+      - name: ui-next tests
+        working-directory: ui-next
+        run: npm test
 
       # ---- the pipeline, and the oracle --------------------------------
       - name: Run the pipeline

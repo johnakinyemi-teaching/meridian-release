@@ -48,6 +48,7 @@ final class StoreAccessTest {
         everyRouteOnABrokenStore(c);
         theRetryOnALockedStore(c, testDir);
         withoutTheProgram(c, testDir);
+        whenTheDriverCannotUnpack(c, testDir);
     }
 
     /**
@@ -304,6 +305,83 @@ final class StoreAccessTest {
         } else {
             System.out.println("  note  this machine is " + arch
                     + ", not x86-64: numbers are compared in its own spelling");
+        }
+    }
+
+        /**
+     * MRD-77, row 9 of the changed-answers table. If the driver cannot
+     * unpack its library, every request must still be answered: 500 with
+     * "sqlite3 exited 1", and health 200. The driver loads once per Java
+     * process and this one has already loaded it, so a second process is
+     * started with a temporary folder that can never exist.
+     */
+    private static void whenTheDriverCannotUnpack(Checks c, Path testDir) throws IOException {
+        c.section("MRD-77: the driver cannot unpack its library");
+        // A path inside an ordinary file can never be a folder.
+        String neverAFolder = Store.withNoTables().path() + "/unpack";
+
+        List<String> command = new ArrayList<>();
+        command.add(Paths.get(System.getProperty("java.home"), "bin", "java").toString());
+        command.add("-cp");
+        command.add(System.getProperty("java.class.path"));
+        command.add("-Dorg.sqlite.tmpdir=" + neverAFolder);
+        command.add("ca.meridian.test.StoreAccessTest$Child");
+        command.add(testDir.toString());
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.environment().remove("JAVA_TOOL_OPTIONS");
+        pb.environment().remove("_JAVA_OPTIONS");
+        pb.environment().remove("JDK_JAVA_OPTIONS");
+        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+        Process p = pb.start();
+        p.getOutputStream().close();
+                int exit;
+        try {
+            if (p.waitFor(120, java.util.concurrent.TimeUnit.SECONDS)) {
+                exit = p.exitValue();
+            } else {
+                p.destroyForcibly();
+                p.waitFor();
+                exit = -1;
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IOException("interrupted waiting for the second Java process", ie);
+        }
+        String out = new String(p.getInputStream().readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8).trim();
+
+        String failed = "500 {\"error\":\"sqlite3 exited 1\"}";
+        String expected = "exit 0\n"
+                + "/api/stations -> " + failed + "\n"
+                + "/api/stations -> " + failed + "\n"
+                + "/api/v2/stations -> " + failed + "\n"
+                + "/api/health -> 200 {\"status\":\"ok\",\"version\":\"4.2.1\"}";
+        c.same("with a driver that cannot unpack, every request is still answered",
+                expected, "exit " + exit + "\n" + out);
+    }
+
+    /** Runs in the second Java process: serve the fixture store, ask four things, print the answers. */
+    static final class Child {
+        public static void main(String[] args) throws Exception {
+            Store store = Store.fromFixture(Paths.get(args[0]));
+            try (Http api = Http.serve(store)) {
+                System.out.println(ask(api, "/api/stations"));
+                System.out.println(ask(api, "/api/stations"));
+                System.out.println(ask(api, "/api/v2/stations"));
+                System.out.println(ask(api, "/api/health"));
+            }
+            Store.deleteAll();
+            System.exit(0);
+        }
+
+        private static String ask(Http api, String target) {
+            try {
+                Http.Response r = api.get(target);
+                return target + " -> " + r.status + " " + r.body;
+            } catch (IOException e) {
+                return target + " -> no answer: " + e;
+            }
         }
     }
 

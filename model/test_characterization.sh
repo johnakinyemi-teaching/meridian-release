@@ -103,26 +103,10 @@ if [[ ! -f "${TMP_DIR}/trace/MERIDIAN.TRC" ]]; then
     exit 1
 fi
 
-if cmp -s "${TMP_DIR}/trace/MERIDIAN.TRC" "${REF_TRC}"; then
-    echo "  PASS: MERIDIAN.TRC matches pinned golden trace fixture (byte-identical)."
-elif python3 -c '
-import sys
-a = open(sys.argv[1]).read().splitlines()
-b = open(sys.argv[2]).read().splitlines()
-assert len(a) == len(b), f"line count {len(a)} != {len(b)}"
-for i, (la, lb) in enumerate(zip(a, b), 1):
-    if la == lb:
-        continue
-    ta, tb = la.split(), lb.split()
-    assert len(ta) == len(tb), f"line {i} token count mismatch"
-    for xa, xb in zip(ta, tb):
-        if xa != xb:
-            assert abs(float(xa) - float(xb)) <= 1e-5, f"line {i}: {xa} vs {xb}"
-' "${REF_TRC}" "${TMP_DIR}/trace/MERIDIAN.TRC"; then
-    echo "  PASS: MERIDIAN.TRC matches pinned golden trace fixture within 1e-5 tolerance."
+if python3 "${SCRIPT_DIR}/validate_trace.py" "${REF_TRC}" "${TMP_DIR}/trace/MERIDIAN.TRC"; then
+    echo "  PASS: MERIDIAN.TRC matches pinned golden trace fixture within tolerance."
 else
     echo "  FAIL: Generated MERIDIAN.TRC differs from reference fixture!"
-    diff -u "${REF_TRC}" "${TMP_DIR}/trace/MERIDIAN.TRC" | head -n 20
     exit 1
 fi
 

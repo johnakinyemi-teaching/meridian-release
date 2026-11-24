@@ -81,8 +81,8 @@ final class EvictionMarks {
             int n = Math.min(b.length, 64);
             return new String(b, 0, n, StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException trouble) {
-            // The note exists but cannot be read (a directory in its place,
-            // a permission problem). Do not trust the cache; never fail.
+            // Unreadable (a directory in its place, no permission): never fail, do not cache.
+            DbLog.warn(DbLog.noteUnreadable(id), trouble);
             return UNKNOWN;
         }
     }

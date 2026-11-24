@@ -45,7 +45,20 @@ final class WarningsTest {
         int[] runs = new int[1];
         String said = standardErrorDuring(() -> runs[0] = cache.summary("GUELPH").runs);
         c.same("the summary is still answered: runs", 2, runs[0]);
-        c.same("and nothing is written to standard error", "", said);
+        c.same("and one line is written to standard error", 1, lines(said));
+        c.isTrue("it starts with the time and says it is a warning",
+                said.matches("(?s)\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ meridian warning: .*"), said);
+        c.isTrue("it names the station and says the summary is not cached",
+                said.contains("the eviction note for GUELPH cannot be read")
+                        && said.contains("not cached"), said);
+        c.isTrue("it gives the cause", said.contains("java.io.IOException"), said);
+
+        String saidAgain = standardErrorDuring(() -> cache.summary("GUELPH"));
+        c.same("the next read says it again: once each time, not once ever", 1, lines(saidAgain));
+    }
+
+    private static int lines(String text) {
+        return text.isEmpty() ? 0 : text.split("\n", -1).length - 1;
     }
 
     /** The ordinary cases must stay quiet, or the line means nothing. */

@@ -25,7 +25,7 @@ AdminCli -> AC : summary("GUELPH")  (warm-up)
 AdminCli -> AC : invalidate("GUELPH", 2025)
 AC -> AC : entries.remove(key("GUELPH"))
 AC -> AM : mark("GUELPH")
-AM -> Notes : write temp file, then atomic move\nnew random token
+AM -> Notes : write temp file, then move it into place\n(atomic move; a plain move if that is not supported)\nnew random token
 note right of AM
   Throws IOException if the note cannot be written.
   AdminCli reports that instead of claiming

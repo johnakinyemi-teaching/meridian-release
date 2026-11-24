@@ -22,6 +22,9 @@ package "ca.meridian.api" {
     -db : Db
     +handle(ex)
   }
+}
+
+package "ca.meridian.api.v2" {
   class ForecastV2 <<context>> {
     -db : DbClient
     -cache : ForecastCache

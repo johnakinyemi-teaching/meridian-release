@@ -46,9 +46,23 @@ Unchanged and left out of the diagrams: `DbClient`'s behaviour, `QueryBuilder` (
 
 ## Interface contracts (`docs/CONTRACTS.md`): checked, no edit needed for this change
 
-The three tickets keep every response byte-identical (the tests hold `forecast`, `series`,
-`stations` and v2 output to recorded text), and none changes the HTTP routes, the store schema,
-or the pipeline order. So nothing in `CONTRACTS.md` is made wrong *by this change*.
+The three tickets keep every response byte-identical for the requests callers send today,
+except the changed answers listed in section 6 of the team's fact sheet and in team PR #24. The
+tests hold `forecast`, `series`, `stations` and v2 answers to recorded text. None of the three
+tickets changes the HTTP routes, the store schema, or the pipeline order. Examples of answers
+that did change:
+
+- A station value containing a quote, such as `'`, now answers 200 `[]` instead of a 500
+  (MRD-166: the value is bound, not run as SQL).
+- `AdminCli evict` now prints `(entries now 0)` (MRD-247: the entry is actually removed).
+- With no `sqlite3` program installed, the routes now answer normally (MRD-77).
+- With a temporary folder that is not writable or does not allow execution, every data route
+  answers 500 `sqlite3 exited 1` (MRD-77: the driver cannot unpack its native library).
+
+`CONTRACTS.md` does not mention `sqlite3`, the driver, temporary folders, error bodies or the
+admin tool's output (searched for `sqlite3`, `jdbc`, `tmp`, `temp`, `500`, `error` and
+`entries`: no matches). So none of those changes makes a line in it wrong, and no
+`CONTRACTS.md` edit is needed for this change.
 
 Two lines in the HTTP API section were already wrong before this change. They are listed here
 so the team can decide, not changed here:

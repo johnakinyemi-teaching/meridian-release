@@ -24,6 +24,9 @@ package "ca.meridian.api" {
     -db : Db
     +handle(ex)
   }
+}
+
+package "ca.meridian.api.v2" {
   class ForecastV2 <<context>> {
     -db : DbClient
     -cache : ForecastCache
@@ -43,8 +46,10 @@ package "ca.meridian.db" {
     +queryJson(sql) : String
     +queryJson(sql, params : Object...) : String
     -open() : Connection
-    -resultCode(e) : int
-    -asTheProgramPrintedIt(rows, store) : String
+    -{static} resultCode(e) : int
+    -{static} asTheProgramPrintedIt(rows, store) : String
+    -{static} real(out, r, spellReal)
+    -{static} quote(out, text)
   }
   class DbClient <<context>> {
     -db : Db
@@ -77,7 +82,7 @@ package "ca.meridian.db" {
   class QueryBuilder <<context>>
 }
 
-class "SQLite JDBC driver 3.46.1.3\nservices/lib/sqlite-jdbc-3.46.1.3.jar\n(runs inside the service's JVM)" as Driver <<external>>
+class "SQLite JDBC driver 3.46.1.3\nservices/lib/sqlite-jdbc-3.46.1.3.jar\n(runs inside the service's JVM)\nneeds a writable, exec-allowed temp folder" as Driver <<external>>
 class "<store path>.evict/<station>\none small note file per station" as Notes <<external>>
 
 ForecastHandler --> Db : queryJson(sql, bound values)
@@ -96,7 +101,8 @@ Db ..> Driver : DriverManager.getConnection("jdbc:sqlite:" + path)
 note right of ForecastHandler
   MRD-166: the station (and the year on /api/series)
   is bound to ?1 / ?2, never written into the SQL.
-  Responses are meant to be byte-identical to before.
+  Answers to ordinary requests are meant to be unchanged;
+  see uml-update-4b.md for what did change.
 end note
 
 note bottom of ForecastCache
@@ -112,6 +118,10 @@ note right of Db
   "sqlite3 exited N", with N = SQLite's result code,
   because DbClient.isTransient() matches "exited 5".
   queryColumn() is gone; nothing called it.
+  New need: the driver unpacks a native library into the
+  temporary folder, which must be writable and allow
+  execution. If not, every data route answers
+  "sqlite3 exited 1" (Db.queryJson, LinkageError).
 end note
 
 note bottom of EvictionMarks

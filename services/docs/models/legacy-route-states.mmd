@@ -1,0 +1,9 @@
+stateDiagram-v2
+  state "Legacy route" as LR {
+    [*] --> ReceivedL
+    ReceivedL --> Handler : any verb, no filter (ApiServer.java lines 36 to 48)
+    Handler --> BadRequest400L : missing/invalid series params (SeriesHandler.java lines 27 to 38)
+    Handler --> InProcessQuery : Db.queryJson opens the store and runs one prepared statement (Db.java lines 73 to 110)
+    InProcessQuery --> ServerError500L : query fails, reported as sqlite3 exited N (Db.java lines 101 to 109)
+    InProcessQuery --> Ok200L : rows, or [] when there are none (Db.java lines 95 to 100)
+  }

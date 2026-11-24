@@ -59,6 +59,7 @@ final class ForecastSeriesTest {
             "",             // station= with nothing after it
             "GU%27ELPH",    // an encoded quote stays as the text %27: never decoded
             "%20GUELPH",    // likewise an encoded space
+            "%47UELPH",     // %47 is "G": decoded, this would be GUELPH (MRD-166)
             "GUELPH+",      // a plus is not turned into a space
         };
         for (String id : noMatch) {
@@ -110,6 +111,12 @@ final class ForecastSeriesTest {
         c.json("lower case station", api.get("/api/series?station=guelph&year=2025"), "[]");
         c.json("empty station", api.get("/api/series?station=&year=2025"), "[]");
         c.json("encoded quote in the station", api.get("/api/series?station=GU%27ELPH&year=2025"), "[]");
+        // The encoded quote above would still answer [] if the station were
+        // decoded, since GU'ELPH is not a station either. %47 is "G", so
+        // %47UELPH decoded is GUELPH: this one fails if decoding is ever added
+        // (MRD-166).
+        c.json("encoded letter in the station: %47UELPH is not GUELPH",
+                api.get("/api/series?station=%47UELPH&year=2025"), "[]");
         c.json("a year with no data", api.get("/api/series?station=GUELPH&year=1800"), "[]");
         c.json("a negative year", api.get("/api/series?station=GUELPH&year=-1"), "[]");
         c.json("the largest int", api.get("/api/series?station=GUELPH&year=2147483647"), "[]");

@@ -73,8 +73,8 @@ repeat
     Both reach db/Db.java:73 (Lane B via the overload at 60-61).
   end note
 
-  if (Did the query fail?\ndb/Db.java:101-108) then (no)
-    if (Was the result empty?\ndb/Db.java:95-96, 169) then (yes)
+  if (Did the query fail?\ndb/Db.java:101-108) then (no) <<#FFF3C4>>
+    if (Was the result empty?\ndb/Db.java:95-96, 169) then (yes) <<#FFF3C4>>
       :Use an empty list: [];
     else (no)
       :Use the result as returned;

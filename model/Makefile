@@ -33,7 +33,7 @@ OBJ = params.o weather.o pet.o soilwat.o runoff.o snow.o \
       runopts.o stress.o nbal_kernel.o nutrient.o nuptake.o nbal.o \
       cropmod.o
 
-.PHONY: all test clean
+.PHONY: all test test_mrd241 test_mrd239 clean
 
 all: cropmod
 
@@ -43,13 +43,21 @@ cropmod: $(OBJ)
 test_kernel: test_kernel.f90 nbal_kernel.o
 	$(FC) $(F90FLAGS) -o test_kernel test_kernel.f90 nbal_kernel.o
 
+test_nuptake: test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_kernel.o nutrient.o nuptake.o
+	$(FC) $(F90FLAGS) -o test_nuptake test_nuptake.f90 params.o weather.o phenology.o soilwat.o nbal_kernel.o nutrient.o nuptake.o
+
 trace_replay: trace_replay.f90 nbal_kernel.o
 	$(FC) $(F90FLAGS) -o trace_replay trace_replay.f90 nbal_kernel.o
 
-test: cropmod test_kernel trace_replay
+test_mrd241: cropmod test_kernel trace_replay
 	./test_kernel
 	bash ./test_characterization.sh
 	python3 ./validate_trace.py --replay ./trace_replay fixtures/MERIDIAN_TRACE.REF
+
+test_mrd239: cropmod test_nuptake
+	bash ./test_characterization_mrd239.sh
+
+test: test_mrd241 test_mrd239
 
 # ---- base layers --------------------------------------------------
 params.o:   params.f90
@@ -99,4 +107,4 @@ cropmod.o:  cropmod.f runopts.o nbal.o
 	$(FC) $(FFLAGS) -c cropmod.f
 
 clean:
-	rm -f *.o *.mod cropmod test_kernel trace_replay MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC
+	rm -f *.o *.mod cropmod test_kernel test_nuptake trace_replay MERIDIAN.OUT MERIDIAN.NUT MERIDIAN.TRC

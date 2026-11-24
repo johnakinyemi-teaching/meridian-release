@@ -269,7 +269,7 @@ final class ForecastCacheTest {
         Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2026");
         c.same("failed eviction: exit status", 1, evict.exit);
         c.isTrue("failed eviction: I/O error on stderr",
-                evict.err.contains("java.nio.file.FileAlreadyExistsException"),
+                evict.err.contains("java.nio.file.FileAlreadyExistsException: " + store.path() + ".evict"),
                 "stderr=[" + evict.err + "]");
         c.same("failed eviction: nothing on stdout", "", evict.out);
     }

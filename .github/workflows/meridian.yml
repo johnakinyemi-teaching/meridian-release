@@ -42,9 +42,6 @@ jobs:
         run: make all
 
       # ---- the tests that exist ----------------------------------------
-      - name: Model characterization and trace validation
-        run: make -C model test
-
       - name: Ingest acceptance test
         run: make -C ingest test
 

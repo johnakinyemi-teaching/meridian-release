@@ -57,7 +57,7 @@ def _qc_records(caplog, level=None):
     return [r for r in caplog.records if r.name == QC_LOG and (level is None or r.levelno == level)]
 
 
-#1 -- the parallel path
+#1 -- the parallel path 
 def test_parallel_path_runs_output_qc_and_returns_the_report(tmp_path, db_path, caplog):
     from meridian.parallel import run_targets_parallel
     seed_readings(db_path, "GUELPH", 2025)
@@ -75,7 +75,7 @@ def test_parallel_path_runs_output_qc_and_returns_the_report(tmp_path, db_path, 
                for r in _qc_records(caplog, logging.ERROR))
 
 
-#2 advisory: nothing persisted changes
+#2 advisory: nothing persisted changes 
 def test_persisted_rows_identical_with_output_qc_on_and_off(tmp_path):
     on_dir, off_dir = tmp_path / "on", tmp_path / "off"
     on_dir.mkdir(), off_dir.mkdir()
@@ -84,7 +84,7 @@ def test_persisted_rows_identical_with_output_qc_on_and_off(tmp_path):
     _run(off_dir, off_db, output_qc_enabled=False)
     on_fc, on_daily = _persisted(on_db)
     off_fc, off_daily = _persisted(off_db)
-    assert on_fc and on_daily
+    assert on_fc and on_daily                      
     assert (on_fc, on_daily) == (off_fc, off_daily)
 
 
@@ -111,7 +111,7 @@ def test_anomaly2_crash_costs_no_forecast_and_does_not_stop_the_run(tmp_path, db
         raise RuntimeError("anomaly2 exploded")
     monkeypatch.setattr(anomaly2, "analyse_result", boom)
      #Do not raise
-    legacy = _run(tmp_path, db_path)
+    legacy = _run(tmp_path, db_path)               
     assert legacy["output_qc"] is None
     fc, _ = _persisted(db_path)
     assert [(r[0], r[1]) for r in fc] == [("GUELPH", 2025)]
@@ -124,11 +124,11 @@ def test_warning_only_forecast_logs_one_warning_headline(caplog):
     caplog.set_level(logging.INFO, logger=QC_LOG)
     report = outputqc.scan(result)
     #Real 2025 GUELPH
-    assert not report.errors() and report.warnings()
+    assert not report.errors() and report.warnings()   
     assert len(_qc_records(caplog, logging.WARNING)) == 1
     assert _qc_records(caplog, logging.ERROR) == []
     #There are no per warning lines
-    assert len(_qc_records(caplog)) == 1
+    assert len(_qc_records(caplog)) == 1               
 
 
 #6 an ERROR forecast is logged, and still persisted (no gate)

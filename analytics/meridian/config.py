@@ -81,11 +81,6 @@ class Config:
         (blocking) or is merely recorded (advisory).
     qc:
         Physical limits, see :class:`QCLimits`.
-    output_qc_enabled:
-        Whether the nightly path scans each persisted forecast with
-        anomaly2 and logs the findings (MRD-246).  Advisory only: there is
-        deliberately no blocking counterpart, so it never stops a run or
-        withholds a forecast.
     stop_on_error:
         Batch policy: stop the whole nightly run on the first failure, or
         record it and carry on.  Default is to carry on -- a single bad
@@ -100,7 +95,6 @@ class Config:
     qc_enabled: bool = True
     qc_blocking: bool = True
     qc: QCLimits = field(default_factory=QCLimits)
-    output_qc_enabled: bool = True
     stop_on_error: bool = False
 
     def __post_init__(self):
@@ -132,8 +126,8 @@ class Config:
 
         Recognised: MERIDIAN_CROPMOD, MERIDIAN_DB, MERIDIAN_SCRATCH_ROOT,
         MERIDIAN_RUN_TIMEOUT_S, MERIDIAN_KEEP_SCRATCH, MERIDIAN_QC,
-        MERIDIAN_QC_BLOCKING, MERIDIAN_OUTPUT_QC, MERIDIAN_STOP_ON_ERROR.
-        Anything unset falls through to the dataclass default.
+        MERIDIAN_QC_BLOCKING, MERIDIAN_STOP_ON_ERROR.  Anything unset
+        falls through to the dataclass default.
         """
         env = os.environ if env is None else env
         kwargs: Dict[str, object] = {}
@@ -152,8 +146,6 @@ class Config:
             kwargs["qc_enabled"] = _bool(env["MERIDIAN_QC"])
         if env.get("MERIDIAN_QC_BLOCKING"):
             kwargs["qc_blocking"] = _bool(env["MERIDIAN_QC_BLOCKING"])
-        if env.get("MERIDIAN_OUTPUT_QC"):
-            kwargs["output_qc_enabled"] = _bool(env["MERIDIAN_OUTPUT_QC"])
         if env.get("MERIDIAN_STOP_ON_ERROR"):
             kwargs["stop_on_error"] = _bool(env["MERIDIAN_STOP_ON_ERROR"])
         return cls(**kwargs)

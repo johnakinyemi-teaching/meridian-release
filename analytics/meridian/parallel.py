@@ -41,7 +41,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from . import aggregate, deck, parse, qc
+from . import aggregate, deck, outputqc, parse, qc
 from .config import Config, DEFAULT
 from .errors import ModelRunError
 from .results import (ForecastResult, ModelInputSpec, RunArtifacts,
@@ -196,6 +196,9 @@ class ParallelOrchestrator:
         self.store = store
         self.config = config
         self.max_workers = max_workers
+        # Advisory output-QC reports (MRD-246), keyed by (stnid, year),
+        # filled in by persist().  A value is None when the scan failed.
+        self.output_qc: Dict[Tuple[str, int], object] = {}
 
     # -- step 1 ------------------------------------------------------------
     def prepare(self, targets: Sequence[StationYear]) -> List[PreparedRun]:
@@ -264,6 +267,11 @@ class ParallelOrchestrator:
 
         for m in collected.values():
             self.store.save_result(m.result, run_at=run_at)
+            # Advisory output QC (MRD-246), after the save, exactly as the
+            # serial seam does.  outputqc.scan never raises.
+            if self.config.output_qc_enabled:
+                self.output_qc[(m.target.stnid, m.target.year)] = (
+                    outputqc.scan(m.result))
         return collected
 
 
@@ -320,6 +328,8 @@ def run_targets_parallel(store: Store, targets: Sequence[StationYear],
         legacy["summary"] = m.summary
         legacy["dropped_days"] = m.result.dropped_days
         legacy["elapsed_s"] = m.elapsed_s
+        legacy["output_qc"] = orch.output_qc.get(
+            (m.target.stnid, m.target.year))
         out.append(legacy)
     out.sort(key=lambda d: (d["stnid"], d["year"]))
     return out

@@ -4,6 +4,9 @@ __pycache__/
 .pytest_cache/
 services/build/
 model/cropmod
+model/test_kernel
+model/test_nuptake
+model/trace_replay
 model/*.mod
 model/MERIDIAN.OUT
 model/MERIDIAN.DAT
@@ -17,5 +20,3 @@ ui-next/dist/
 ingest/mrd_framedump
 model/MERIDIAN.NUT
 model/MERIDIAN.TRC
-
-docs/uml/plantuml.jar

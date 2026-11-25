@@ -16,7 +16,6 @@ going forward, so the fix keeps holding as parallel.py evolves:
 import os
 import random
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -25,17 +24,17 @@ from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from meridian import orchestrator
-from meridian.aggregate import summarize_result
+
 from meridian.errors import ModelRunError
 from meridian.parallel import (
-    Modelled,
     ParallelOrchestrator,
     PreparedRun,
     run_all_parallel,
     run_targets_parallel,
 )
-from meridian.results import DailyRow, ForecastResult, StationYear
+from meridian.results import StationYear
 from meridian.store import Store
+from mrd244_helpers import modelled_forecast
 
 
 REPO_ROOT = os.path.abspath(
@@ -46,39 +45,16 @@ MRD_INGEST = os.path.join(REPO_ROOT, "ingest", "mrd_ingest")
 GEN_PACKETS = os.path.join(REPO_ROOT, "tools", "gen_packets.py")
 
 BINARIES_BUILT = os.access(CROPMOD, os.X_OK) and os.access(MRD_INGEST, os.X_OK)
+if os.environ.get("MRD_REQUIRE_BINARIES") == "1" and not BINARIES_BUILT:
+    raise RuntimeError(
+        "MRD_REQUIRE_BINARIES=1 but model/cropmod or ingest/mrd_ingest "
+        "is not built; run `make all`"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def modelled_forecast(station, year, yield_t):
-    """Construct a synthetic Modelled result for persistence tests."""
-    result = ForecastResult(
-        stnid=station,
-        year=year,
-        model="cropmod",
-        ndays=1,
-        yield_t=yield_t,
-        rows=[
-            DailyRow(
-                doy=100,
-                sw=yield_t * 10,
-                et=2.0,
-                drain=0.0,
-                biom=20.0,
-                lai=1.0,
-            )
-        ],
-    )
-    return Modelled(
-        target=StationYear(station, year),
-        result=result,
-        summary=summarize_result(result),
-        elapsed_s=0.1,
-        deck_days=1,
-    )
-
 
 def stored_rows(store):
     """All persisted forecast state, excluding run_at.

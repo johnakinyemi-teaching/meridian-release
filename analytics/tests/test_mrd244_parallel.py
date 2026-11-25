@@ -1,50 +1,13 @@
 """Characterize parallel forecast persistence at the batch entry point."""
 
+import datetime as dt
 from contextlib import closing
 from unittest import TestCase
 from unittest.mock import patch
 
-from meridian.aggregate import summarize_result
-from meridian.parallel import (
-    Modelled,
-    ParallelOrchestrator,
-    run_targets_parallel,
-)
-from meridian.results import DailyRow, ForecastResult, StationYear
+from meridian.parallel import ParallelOrchestrator, run_targets_parallel
 from meridian.store import Store
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def modelled_forecast(station, year, yield_t):
-    """Construct a synthetic Modelled result for persistence tests."""
-    result = ForecastResult(
-        stnid=station,
-        year=year,
-        model="cropmod",
-        ndays=1,
-        yield_t=yield_t,
-        rows=[
-            DailyRow(
-                doy=100,
-                sw=yield_t * 10,
-                et=2.0,
-                drain=0.0,
-                biom=20.0,
-                lai=1.0,
-            )
-        ],
-    )
-    return Modelled(
-        target=StationYear(station, year),
-        result=result,
-        summary=summarize_result(result),
-        elapsed_s=0.1,
-        deck_days=1,
-    )
-
+from mrd244_helpers import modelled_forecast
 
 def _snapshot_store(store, targets):
     """Snapshot the full contract state of the store for Golden Master use.
@@ -206,6 +169,7 @@ class ParallelForecastPersistenceTests(TestCase):
         format is verified separately to confirm it is at least non-empty.
         """
         runs = [
+            modelled_forecast("GUELPH", 2024, 5.25),
             modelled_forecast("GUELPH", 2025, 5.75),
             modelled_forecast("WATERLOO", 2025, 6.25),
         ]
@@ -262,10 +226,4 @@ class ParallelForecastPersistenceTests(TestCase):
 
         # 3d. run_at field must be a non-empty ISO-format string.
         for r in reported:
-            self.assertIsInstance(r["run_at"], str)
-            self.assertTrue(
-                r["run_at"],
-                "run_at must be non-empty for %s %s" % (
-                    r["stnid"], r["year"]
-                ),
-            )
+            dt.datetime.fromisoformat(r["run_at"]) # ValueError if malformed

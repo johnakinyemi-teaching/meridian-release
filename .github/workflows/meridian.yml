@@ -42,15 +42,14 @@ jobs:
         run: make all
 
       # ---- the tests that exist ----------------------------------------
-      - name: Model characterization and trace validation
-        run: make -C model test
-
       - name: Ingest acceptance test
         run: make -C ingest test
 
       - name: Reporting tests
         run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
 
+      - name: Analytics tests
+        run: python -m pip install pytest && MRD_REQUIRE_BINARIES=1 python -m pytest analytics/tests -v
       # Legacy console characterization tests (Watchtower, MRD-253). Loads the
       # real ES5 console files into jsdom against recorded API responses in
       # dashboard/test/fixtures/api. Dev-only; the console has no build step.

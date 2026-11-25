@@ -1,8 +1,0 @@
-MRD2 existing-behaviour tests
-Fixture CRC: 0x9E3C
-Valid legacy fixture: expected=0 actual=0 PASS
-Payload corruption: expected=-3 actual=-3 PASS
-Version corruption: expected=0 actual=0 PASS
-Flags corruption: expected=0 actual=0 PASS
-
-Passed: 4/4

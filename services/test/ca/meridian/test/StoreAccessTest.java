@@ -46,6 +46,7 @@ final class StoreAccessTest {
             manyAtOnce(c, api);
         }
         everyRouteOnABrokenStore(c);
+        aStoreCutShortIsReportedWithSQLitesOwnCode(c, testDir);
         theRetryOnALockedStore(c, testDir);
         withoutTheProgram(c, testDir);
     }
@@ -227,6 +228,24 @@ final class StoreAccessTest {
             for (String route : dataRoutes) {
                 c.error(route, api.get(route), 500, "sqlite3 exited 26");
             }
+        }
+    }
+
+    /**
+     * A store file cut short: the collector writes the file while the service
+     * reads it, so a torn file is a realistic failure. SQLite reports it as
+     * code 11 (SQLITE_CORRUPT, "database disk image is malformed"), and that
+     * code, shown as "sqlite3 exited 11", is all an operator gets to see. The
+     * suite tried only the codes 1, 5 and 26, so a Db that passed only 5 and 26
+     * through and turned every other code into 1 passed every check.
+     */
+    private static void aStoreCutShortIsReportedWithSQLitesOwnCode(Checks c, Path testDir) throws IOException {
+        c.section("store file cut short to its first 4096 bytes: 500 sqlite3 exited 11");
+        Store cutShort = Store.fromFixture(testDir);
+        Path file = Paths.get(cutShort.path());
+        Files.write(file, java.util.Arrays.copyOf(Files.readAllBytes(file), 4096));
+        try (Http api = Http.serve(cutShort)) {
+            c.error("/api/stations", api.get("/api/stations"), 500, "sqlite3 exited 11");
         }
     }
 

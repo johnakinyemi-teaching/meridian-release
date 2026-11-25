@@ -1,0 +1,4 @@
+STATION   DAYS      YEARS
+GUELPH    4         2024-2025 (2)
+KITCHNER  2         2025-2025 (1)
+MILTON    1         2025-2025 (1)

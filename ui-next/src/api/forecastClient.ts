@@ -14,26 +14,33 @@
 // separately and neither build imports the other.
 //
 // ---------------------------------------------------------------------------
-// DRIFT (read before trusting a headline yield against the legacy console):
+// SHARED RULE (MRD-252, agreed with the legacy console's owners under MRD-253).
+// The service never computes a "current" run, so each console derives it. Both
+// consoles must apply this same rule, or they show different yields for one
+// station:
 //
-//   1. "Current run" selection. currentForecastRun() below picks the run with
-//      the greatest numeric `year`. The legacy console instead treats the LAST
-//      row the service returns as the current one (dashboard/js/views/
-//      forecast.js, openStation(): `yr = rows[rows.length - 1].year`, and
-//      dashboard/js/views/compare.js, renderYieldTable(): `latest = y` through
-//      the loop). Those two rules agree only while the service returns forecast
-//      rows in ascending-year order. A backfilled or re-run older season that
-//      the service returns out of order makes the two consoles name a different
-//      "current" run — and therefore a different yield — for the same station.
-//      This is the same failure family as MRD-238 on the reporting side.
+//   1. Current run = the row with the greatest numeric `year`, whatever order
+//      the service returns rows in (a backfilled older season returned last
+//      must not become "current").
+//   2. If several rows share that year, the one with the latest `run_at`,
+//      compared as a timestamp, not as text. `run_at` is an opaque string;
+//      both "YYYY-MM-DDTHH:MM:SS" and "YYYY-MM-DD HH:MM:SS" are accepted, and
+//      as text "T" sorts after " ", which picks the wrong run.
+//   3. If `run_at` is also equal, or will not parse, the row returned last wins.
+//      The rows are scanned in order, so this fallback is sequential, not a
+//      global "latest run_at wins": for same-year rows [09:00, unparseable,
+//      02:00] the unparseable row displaces 09:00, then 02:00 displaces it, so
+//      02:00 is current. The legacy console does the same (MRD-253).
+//   4. Yield is shown to three decimals (legacy Meridian.Fmt.yield_t).
 //
-//   2. Yield formatting. formatYield() renders two decimals; the legacy
-//      Meridian.Fmt.yield_t renders three (dashboard/js/util/fmt.js). So even
-//      when both consoles pick the same run, Compare prints e.g. "4.40 t/ha"
-//      where the legacy console prints "4.402".
+// Rules 1-3 are defensive. Today `forecast` has PRIMARY KEY (stnid, year) and
+// /api/forecast?station= returns rows ORDER BY year, so the service sends one
+// row per year in ascending order: out-of-order or same-year rows cannot reach
+// this client yet. On real data the only visible effect of MRD-252 is rule 4.
 //
-// Neither drift is intended behaviour; both are recorded here so the next owner
-// finds them before an operator does. See MIGRATION.md.
+// Before MRD-252 this client broke same-year ties on the `run_at` TEXT and
+// printed two decimals, while the legacy console took the last-returned row.
+// A change to the rule must be made in both consoles. See MIGRATION.md.
 // ---------------------------------------------------------------------------
 
 import type { ForecastRow, SeriesRow } from './types';
@@ -104,19 +111,33 @@ export function fetchDailySeries(station: string, year: number, signal?: AbortSi
 }
 
 /**
- * The forecast run "in force" for a station.
- *
- * DRIFT (see the header): this picks the greatest numeric `year`, breaking ties
- * on the later `run_at` string. The legacy console takes whatever row the
- * service returns last. The two disagree whenever the service returns runs out
- * of ascending-year order.
+ * `run_at` as epoch milliseconds, or NaN if it will not parse. The space
+ * separator is normalised to "T" so both forms parse the same way (as local
+ * time) in every browser: V8 accepts "YYYY-MM-DD HH:MM:SS" as-is, but that form
+ * is not in the ECMAScript date format and other engines may return NaN for it.
+ */
+function runAtMs(runAt: string): number {
+  return Date.parse(String(runAt).trim().replace(' ', 'T'));
+}
+
+/**
+ * The forecast run "in force" for a station, by the shared rule (see the
+ * header): greatest `year`; within that year the latest `run_at` timestamp;
+ * if `run_at` is equal or unparseable, the later row (applied sequentially, so
+ * an unparseable row in between can let an earlier run_at win).
  */
 export function currentForecastRun(rows: ForecastRow[] | null): ForecastRow | null {
   if (!rows || rows.length === 0) return null;
   let best = rows[0];
   for (const r of rows) {
-    if (r.year > best.year) best = r;
-    else if (r.year === best.year && r.run_at > best.run_at) best = r;
+    if (r.year > best.year) {
+      best = r;
+    } else if (r.year === best.year) {
+      const a = runAtMs(r.run_at);
+      const b = runAtMs(best.run_at);
+      // Later run_at wins; equal or unparseable falls back to the later row.
+      if (Number.isNaN(a) || Number.isNaN(b) || a >= b) best = r;
+    }
   }
   return best;
 }
@@ -161,12 +182,11 @@ export function yieldSpread(rows: ForecastRow[] | null): YieldSpread {
 }
 
 /**
- * Yield in t/ha.
- *
- * DRIFT (see the header): two decimals, with the unit. The legacy
- * Meridian.Fmt.yield_t uses three decimals and no unit.
+ * Yield in t/ha to three decimals (shared rule, see the header), matching the
+ * legacy Meridian.Fmt.yield_t and ui-next's own util/format yieldTonnes.
+ * Missing or non-finite values render as an em dash.
  */
 export function formatYield(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return '—';
-  return `${n.toFixed(2)} t/ha`;
+  return `${n.toFixed(3)} t/ha`;
 }

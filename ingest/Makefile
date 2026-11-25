@@ -53,6 +53,8 @@ src/mrd_framedump.o: src/mrd_framedump.c src/packet.h src/packet2.h \
 
 test: all
 	sh test/test_ingest.sh
+	$(CC) $(CFLAGS) -Isrc -o test/test_mrd2_bug test/test_mrd2_bug.c src/packet.c src/packet2.c
+	./test/test_mrd2_bug
 
 clean:
 	rm -f src/*.o $(BINS)

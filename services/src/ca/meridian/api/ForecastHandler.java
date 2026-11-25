@@ -42,21 +42,24 @@ public final class ForecastHandler implements HttpHandler {
         String station = q.get("station");
 
         String sql;
+        Object[] params;
         if (station == null) {
             sql = "SELECT stnid, year, yield_t, ndays, model, run_at"
                 + " FROM forecast ORDER BY stnid, year";
+            params = new Object[0];
         } else {
-            // Station names come from the station list endpoint, so they
-            // are known-good. TODO tighten this before the portal opens
-            // to external users. MRD-166.
+            // The station is whatever the caller sent, unchecked and not
+            // percent-decoded, as it always was. It is bound to ?1 and
+            // never written into the SQL (MRD-166).
             sql = "SELECT stnid, year, yield_t, ndays, model, run_at"
-                + " FROM forecast WHERE stnid = '" + station + "'"
+                + " FROM forecast WHERE stnid = ?1"
                 + " ORDER BY year";
+            params = new Object[] { station };
         }
 
         String json;
         try {
-            json = db.queryJson(sql);
+            json = db.queryJson(sql, params);
         } catch (IOException e) {
             ApiServer.sendError(ex, 500, e.getMessage());
             return;

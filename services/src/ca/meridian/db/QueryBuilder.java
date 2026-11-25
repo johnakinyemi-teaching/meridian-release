@@ -6,13 +6,13 @@ import java.util.List;
 /**
  * A tiny SQL builder used by the endpoints written from 2019 onward.
  *
- * The original data endpoints (forecast, series) glue SQL together by
- * hand from the query string - that is the long-standing MRD-166
- * problem and is deliberately left alone there. New code goes through
- * this instead. Since the store is reached by shelling out to sqlite3
- * (MRD-77) there are no bind parameters to use, so literals are quoted
- * and escaped here: single quotes are doubled the SQLite way and the
- * few control characters that could break the argv are rejected.
+ * The original data endpoints (forecast, series) do not use it: they
+ * keep their hand-written SQL and, since MRD-166, bind their values
+ * through {@link Db#queryJson(String, Object...)}. The endpoints written
+ * from 2019 onward go through this instead. It predates that binding,
+ * so literals are quoted and escaped here: single quotes are doubled
+ * the SQLite way and the few control characters that have no place in
+ * a station id are rejected.
  *
  * It is not a general query builder. It covers SELECT with equality
  * and range predicates, which is all the aggregate endpoints need.

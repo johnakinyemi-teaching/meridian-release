@@ -221,6 +221,13 @@ final class ForecastSeriesTest {
             c.passthrough("and GUELPH's answer does not change because that row exists",
                     onOdd.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
         }
+
+        // Binding keeps a quote from ending the SQL text, but the station is
+        // still only safe while the SQL compares it with "=". Under a pattern
+        // operator such as GLOB, "GU*" would match GUELPH with no quote at all.
+        c.section("MRD-166: a wildcard in the station is text, not a pattern");
+        c.json("forecast, station=GU*: no station has that id, GUELPH is not matched",
+                api.get("/api/forecast?station=GU*"), "[]");
     }
 
     /** What the two routes answer when the store itself is unusable. */

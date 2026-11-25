@@ -1,6 +1,0 @@
-BRANTFRD   2025  yield=   5.841 t/ha  days=174  rows=174  model=cropmod V2.3
-CAMBRIDG   2025  yield=   6.014 t/ha  days=174  rows=174  model=cropmod V2.3
-GUELPH     2025  yield=   5.951 t/ha  days=174  rows=174  model=cropmod V2.3
-KITCHNER   2025  yield=   6.138 t/ha  days=174  rows=174  model=cropmod V2.3
-MILTON     2025  yield=   5.928 t/ha  days=174  rows=174  model=cropmod V2.3
-WATERLOO   2025  yield=   5.737 t/ha  days=174  rows=174  model=cropmod V2.3

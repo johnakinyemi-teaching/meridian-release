@@ -10,29 +10,40 @@ class ParallelOrchestrator {
   + store : Store
   + config : Config
   + max_workers : Optional[int]
-  + output_qc : Dict[Tuple[str,int], AnomalyReport]
+  + output_qc : Dict[Tuple[str,int], Optional[AnomalyReport]]
   --
+  + __init__(store : Store, config : Config = DEFAULT, max_workers : Optional[int] = None)
   + prepare(targets : Sequence[StationYear]) : List[PreparedRun]
-  + run(prepared : List[PreparedRun], run_at : datetime) : Tuple[List[Modelled], List[RunOutcome]]
-  + persist(modelled : List[Modelled], run_at : datetime) : Dict[Tuple[str,int], Modelled]
+  + run(prepared : Sequence[PreparedRun], run_at : str) : Tuple[List[Modelled], List[RunOutcome]]
+  + persist(modelled : Sequence[Modelled], run_at : str) : Dict[Tuple[str,int], Modelled]
 }
 
 note right of ParallelOrchestrator::persist
   <b>MRD-244 fix</b>
   Before: collected keyed by <i>stnid</i> alone
-    -> last station-year written clobbers earlier years
+    -> a later year for the same station
+       overwrites the earlier year's result
   After: keyed by <i>(stnid, year)</i>
     -> every station-year persisted independently
+  output_qc already used (stnid, year) as its key,
+  making the old stnid-only dict inconsistent with it.
+  persist() saves all successes before raising on failures.
 end note
 
-class PreparedRun <<dataclass>> {
+class RunOutcome <<dataclass>> {
   + target : StationYear
-  + spec : ModelInputSpec
-  + stnid : str
-  + year : int
+  + error : Optional[str]
+  + elapsed_s : float
 }
 
-class Modelled <<dataclass>> {
+class PreparedRun <<frozen dataclass>> {
+  + target : StationYear
+  + spec : ModelInputSpec
+  + /stnid : str
+  + /year : int
+}
+
+class Modelled <<frozen dataclass>> {
   + target : StationYear
   + result : ForecastResult
   + summary : SeasonSummary
@@ -46,19 +57,28 @@ class StationYear <<dataclass>> {
 }
 
 class Store {
-  + write_forecast(result : ForecastResult) : None
+  + save_result(result : ForecastResult, run_at : str) : None
 }
 
-class Config {
-  + targets : List[StationYear]
-  + max_workers : Optional[int]
+class Config <<frozen dataclass>> {
+  + model_binary : str
+  + run_timeout_s : int
+  + scratch_root : Optional[str]
+  + keep_scratch : bool
+  + db_path : str
+  + qc_enabled : bool
+  + output_qc_enabled : bool
+  + stop_on_error : bool
 }
 
 ParallelOrchestrator --> Store : uses
 ParallelOrchestrator --> Config : reads
-ParallelOrchestrator ..> PreparedRun : produces in prepare()
-ParallelOrchestrator ..> Modelled : collects in persist()
+ParallelOrchestrator ..> PreparedRun : prepare() produces
+ParallelOrchestrator ..> Modelled : run() produces
+ParallelOrchestrator ..> RunOutcome : run() produces on failure
+ParallelOrchestrator ..> Modelled : persist() consumes
 Modelled --> StationYear : target
 PreparedRun --> StationYear : target
+RunOutcome --> StationYear : target
 
 @enduml

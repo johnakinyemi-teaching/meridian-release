@@ -1,84 +1,88 @@
-@startuml mrd244_parallel_orchestrator
+@startuml
 title MRD-244: ParallelOrchestrator Persistence Fix (NightShift)
-
 skinparam classAttributeIconSize 0
-skinparam classFontStyle bold
-skinparam noteBackgroundColor #FFFACD
-skinparam noteBorderColor #DAA520
+hide empty members
 
 class ParallelOrchestrator {
-  + store : Store
-  + config : Config
-  + max_workers : Optional[int]
-  + output_qc : Dict[Tuple[str,int], Optional[AnomalyReport]]
+  +store : Store
+  +config : Config
+  +max_workers : Optional[int]
+  +output_qc : Dict[Tuple[str,int], Optional[AnomalyReport]]
   --
-  + __init__(store : Store, config : Config = DEFAULT, max_workers : Optional[int] = None)
-  + prepare(targets : Sequence[StationYear]) : List[PreparedRun]
-  + run(prepared : Sequence[PreparedRun], run_at : str) : Tuple[List[Modelled], List[RunOutcome]]
-  + persist(modelled : Sequence[Modelled], run_at : str) : Dict[Tuple[str,int], Modelled]
-}
-
-note right of ParallelOrchestrator::persist
-  <b>MRD-244 fix</b>
-  Before: collected keyed by <i>stnid</i> alone
-    -> a later year for the same station
-       overwrites the earlier year's result
-  After: keyed by <i>(stnid, year)</i>
-    -> every station-year persisted independently
-  output_qc already used (stnid, year) as its key,
-  making the old stnid-only dict inconsistent with it.
-  persist() saves all successes before raising on failures.
-end note
-
-class RunOutcome <<dataclass>> {
-  + target : StationYear
-  + error : Optional[str]
-  + elapsed_s : float
+  +__init__(store : Store, config : Config = DEFAULT, max_workers : Optional[int] = None)
+  +prepare(targets : Sequence[StationYear]) : List[PreparedRun]
+  +run(prepared : Sequence[PreparedRun], run_at : str) : Tuple[List[Modelled], List[RunOutcome]]
+  +persist(modelled : Sequence[Modelled], run_at : str) : Dict[Tuple[str,int], Modelled]
 }
 
 class PreparedRun <<frozen dataclass>> {
-  + target : StationYear
-  + spec : ModelInputSpec
-  + /stnid : str
-  + /year : int
+  +target : StationYear
+  +spec : ModelInputSpec
+  +/stnid : str
+  +/year : int
 }
 
 class Modelled <<frozen dataclass>> {
-  + target : StationYear
-  + result : ForecastResult
-  + summary : SeasonSummary
-  + elapsed_s : float
-  + deck_days : int
+  +target : StationYear
+  +result : ForecastResult
+  +summary : SeasonSummary
+  +elapsed_s : float
+  +deck_days : int
 }
 
-class StationYear <<dataclass>> {
-  + stnid : str
-  + year : int
+class RunOutcome <<dataclass>> {
+  +target : StationYear
+  +ok : bool
+  +yield_t : Optional[float]
+  +ndays : Optional[int]
+  +dropped_days : int
+  +elapsed_s : float
+  +error : Optional[str]
+}
+
+class StationYear <<frozen dataclass>> {
+  +stnid : str
+  +year : int
 }
 
 class Store {
-  + save_result(result : ForecastResult, run_at : str) : None
+  +save_result(result : ForecastResult, run_at : str) : None
 }
 
 class Config <<frozen dataclass>> {
-  + model_binary : str
-  + run_timeout_s : int
-  + scratch_root : Optional[str]
-  + keep_scratch : bool
-  + db_path : str
-  + qc_enabled : bool
-  + output_qc_enabled : bool
-  + stop_on_error : bool
+  +model_binary : str
+  +run_timeout_s : int
+  +scratch_root : Optional[str]
+  +scratch_prefix : str
+  +keep_scratch : bool
+  +db_path : str
+  +qc_enabled : bool
+  +qc_blocking : bool
+  +qc : QCLimits
+  +output_qc_enabled : bool
+  +stop_on_error : bool
 }
 
+ParallelOrchestrator ..> PreparedRun : prepare() produces
+ParallelOrchestrator ..> PreparedRun : run() consumes
+ParallelOrchestrator ..> Modelled : run() produces
+ParallelOrchestrator ..> Modelled : persist() consumes
+ParallelOrchestrator ..> RunOutcome : run() produces on failure
 ParallelOrchestrator --> Store : uses
 ParallelOrchestrator --> Config : reads
-ParallelOrchestrator ..> PreparedRun : prepare() produces
-ParallelOrchestrator ..> Modelled : run() produces
-ParallelOrchestrator ..> RunOutcome : run() produces on failure
-ParallelOrchestrator ..> Modelled : persist() consumes
-Modelled --> StationYear : target
+
 PreparedRun --> StationYear : target
+Modelled --> StationYear : target
 RunOutcome --> StationYear : target
 
+note right of ParallelOrchestrator::persist
+  **MRD-244 fix**
+  Before: collected keyed by //stnid// alone
+    -> whichever run finished last overwrote
+       the other years of that station
+  After: keyed by //(stnid, year)//
+    -> every station-year persisted independently
+  output_qc already used (stnid, year) as its key,
+  so the old stnid-only dict was inconsistent with it.
+end note
 @enduml

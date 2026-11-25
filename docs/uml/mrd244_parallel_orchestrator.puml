@@ -1,0 +1,64 @@
+@startuml mrd244_parallel_orchestrator
+title MRD-244: ParallelOrchestrator Persistence Fix (NightShift)
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam noteBackgroundColor #FFFACD
+skinparam noteBorderColor #DAA520
+
+class ParallelOrchestrator {
+  + store : Store
+  + config : Config
+  + max_workers : Optional[int]
+  + output_qc : Dict[Tuple[str,int], AnomalyReport]
+  --
+  + prepare(targets : Sequence[StationYear]) : List[PreparedRun]
+  + run(prepared : List[PreparedRun], run_at : datetime) : Tuple[List[Modelled], List[RunOutcome]]
+  + persist(modelled : List[Modelled], run_at : datetime) : Dict[Tuple[str,int], Modelled]
+}
+
+note right of ParallelOrchestrator::persist
+  <b>MRD-244 fix</b>
+  Before: collected keyed by <i>stnid</i> alone
+    -> last station-year written clobbers earlier years
+  After: keyed by <i>(stnid, year)</i>
+    -> every station-year persisted independently
+end note
+
+class PreparedRun <<dataclass>> {
+  + target : StationYear
+  + spec : ModelInputSpec
+  + stnid : str
+  + year : int
+}
+
+class Modelled <<dataclass>> {
+  + target : StationYear
+  + result : ForecastResult
+  + summary : SeasonSummary
+  + elapsed_s : float
+  + deck_days : int
+}
+
+class StationYear <<dataclass>> {
+  + stnid : str
+  + year : int
+}
+
+class Store {
+  + write_forecast(result : ForecastResult) : None
+}
+
+class Config {
+  + targets : List[StationYear]
+  + max_workers : Optional[int]
+}
+
+ParallelOrchestrator --> Store : uses
+ParallelOrchestrator --> Config : reads
+ParallelOrchestrator ..> PreparedRun : produces in prepare()
+ParallelOrchestrator ..> Modelled : collects in persist()
+Modelled --> StationYear : target
+PreparedRun --> StationYear : target
+
+@enduml

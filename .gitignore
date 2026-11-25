@@ -17,3 +17,5 @@ ui-next/dist/
 ingest/mrd_framedump
 model/MERIDIAN.NUT
 model/MERIDIAN.TRC
+
+docs/uml/plantuml.jar

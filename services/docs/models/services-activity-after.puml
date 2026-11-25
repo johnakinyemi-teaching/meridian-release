@@ -1,0 +1,109 @@
+@startuml services-activity-after
+' Update of Team Relay's A2 activity diagram (request handling for the two oldest data
+' routes), for the A4 change: MRD-166 (bound values), MRD-77 Java half (the store is read
+' in this process, not by the sqlite3 program). MRD-247 is not on these routes.
+' Yellow = a step the change altered. White = unchanged. Line numbers are for team/relay,
+' Java paths relative to services/src/ca/meridian/. The A2 diagram was drawn from main.
+!pragma layout smetana
+title Activity: /api/forecast (Lane A) and /api/summary (Lane B), AFTER the A4 change
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #444444
+skinparam ArrowColor #444444
+
+legend right
+  Yellow: step changed by the A4 change
+  White: unchanged since the A2 diagram
+endlegend
+
+start
+
+split
+  -[hidden]->
+  partition "Lane A: GET /api/forecast (older route, no filters)" {
+    :Read the query without decoding it
+    api/ForecastHandler.java:25-37, 41;
+    if (Did the request include a station?\napi/ForecastHandler.java:46) then (no)
+      :Ask for forecasts for every station
+      api/ForecastHandler.java:47-49;
+    else (yes)
+      :Bind the station to ?1 as typed, no check; <<#FFF3C4>>
+      note right
+        api/ForecastHandler.java:54-57.
+        A2: the station was pasted into the SQL text (MRD-166).
+        Now a value such as ' is looked up as a name.
+      end note
+    endif
+  }
+split again
+  -[hidden]->
+  partition "Lane B: GET /api/summary (newer route, goes through filters)" {
+    if (Browser permission check (OPTIONS)?\napi/Cors.java:30) then (yes)
+      :Reply 204 and stop\napi/Cors.java:31-37;
+      stop
+    else (no)
+    endif
+    if (Is it a GET request?\napi/SummaryHandler.java:41) then (no)
+      :Reply 405\napi/SummaryHandler.java:42-43;
+      stop
+    else (yes)
+    endif
+    :Read the query and decode it\napi/Http.java:38;
+    if (Did the request include a station?\napi/SummaryHandler.java:59) then (yes)
+      if (Is the station 4-8 letters or digits?\nutil/Validate.java:30, 34) then (no)
+        :Reply 400\napi/SummaryHandler.java:63-65;
+        stop
+      else (yes)
+        :Add the station with proper quoting\napi/SummaryHandler.java:61;
+      endif
+    else (no)
+    endif
+    :Summarize every station\napi/SummaryHandler.java:48-56, 68;
+    :Send the query through the retry helper\napi/SummaryHandler.java:72, db/DbClient.java:54-56;
+  }
+end split
+
+repeat
+  :Open the store in this process and run the statement
+  (A2: run the sqlite3 program)
+  db/Db.java:73-95; <<#FFF3C4>>
+  note right
+    Lane A passes bound values, Lane B passes none.
+    Both reach db/Db.java:73 (Lane B via the overload at 60-61).
+  end note
+
+  if (Did the query fail?\ndb/Db.java:101-108) then (no) <<#FFF3C4>>
+    if (Was the result empty?\ndb/Db.java:95-96, 169) then (yes) <<#FFF3C4>>
+      :Use an empty list: [];
+    else (no)
+      :Use the result as returned;
+    endif
+    if (Which route asked?) then (Lane A)
+      :Reply 200 with the result unchanged\napi/ForecastHandler.java:68-74;
+      stop
+    else (Lane B)
+      :Reformat each row, then reply 200\napi/SummaryHandler.java:78-97;
+      stop
+    endif
+  else (yes)
+    note right
+      The text is still "sqlite3 exited N" (N = SQLite result code).
+      NEW: if the driver cannot unpack its native library (temp
+      folder not writable, or not allowed to run programs), every
+      query fails with "sqlite3 exited 1" (db/Db.java:104-108).
+    end note
+    if (Which route asked?) then (Lane A)
+      :Reply 500: server error\napi/ForecastHandler.java:63-65;
+      stop
+    else (Lane B)
+      if (Worth retrying, and tries left?\ndb/DbClient.java:59, 75) then (no)
+        :Reply 500: server error\napi/SummaryHandler.java:73-74;
+        stop
+      else (yes)
+      endif
+    endif
+  endif
+backward:Wait a little longer each time (120 ms, then 240 ms), then retry\ndb/DbClient.java:62;
+repeat while (retry?) is (yes)
+@enduml

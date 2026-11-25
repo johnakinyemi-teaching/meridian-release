@@ -25,7 +25,7 @@
 ! ======================================================================
 module nuptake
    use soilwat,    only : NLAYERS, ROOT_FRAC
-   use nutrient,   only : npool_t, n_mineral_layer
+   use nutrient,   only : npool_t, n_mineral_layer, NAREA
    use phenology,  only : pheno_t, STAGE_VEG, STAGE_GRAINFIL, STAGE_MATURE
    implicit none
    private
@@ -33,9 +33,9 @@ module nuptake
    ! ---- areal unit conversion, g N m-2 -> kg N ha-1 ------------------
    ! A hectare is 1.0e4 m2, so one gram per square metre laid over a
    ! hectare is 1.0e4 grams per hectare; expressed in kilograms that is
-   ! 100 kg ha-1.  Demand (g m-2) is multiplied by this before it is
-   ! drawn from the pools (kg ha-1).
-   real, parameter :: GM2_TO_KGHA = 100.0
+   ! 10 kg ha-1 (1.0e4 g / 1000 g kg-1).  Reuses NAREA from NUTRIENT so
+   ! demand conversion and soil pools share one source of truth (MRD-239).
+   real, parameter :: GM2_TO_KGHA = NAREA
 
    ! ---- target N concentration of new dry matter, g N per g DM -------
    ! Highest in vegetative tissue, diluting through grain fill as the

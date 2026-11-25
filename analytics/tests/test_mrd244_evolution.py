@@ -103,6 +103,7 @@ class ParallelPersistenceEvolutionTests(TestCase):
     maxDiff = None
 
     def test_three_or_more_years_of_one_station_are_all_persisted(self):
+        """All completed years for a single station are saved without clobbering."""
         runs = [
             modelled_forecast("GUELPH", 2022, 5.10),
             modelled_forecast("GUELPH", 2023, 5.40),
@@ -136,6 +137,7 @@ class ParallelPersistenceEvolutionTests(TestCase):
         )
 
     def test_completion_order_does_not_change_stored_rows(self):
+        """Stored rows and reported output match regardless of worker finish order."""
         runs = [
             modelled_forecast(stn, year, 5.0 + i * 0.1 + (year - 2023) * 0.01)
             for i, stn in enumerate(["GUELPH", "WATERLOO", "MILTON"])
@@ -290,11 +292,13 @@ class RealParallelMatchesSerialTests(TestCase):
                 self.assertNotEqual(years[2024], years[2025])
 
     def test_parallel_four_workers_matches_serial(self):
+        """Real 4-worker parallel run produces the exact same DB state as serial."""
         parallel = self._run_parallel(4)
         self.assertEqual(len(parallel["forecast"]), self.EXPECTED_ROWS)
         self.assertEqual(parallel, self.serial)
 
     def test_parallel_one_worker_matches_serial(self):
+        """Real 1-worker parallel run produces the exact same DB state as serial."""
         parallel = self._run_parallel(1)
         self.assertEqual(len(parallel["forecast"]), self.EXPECTED_ROWS)
         self.assertEqual(parallel, self.serial)

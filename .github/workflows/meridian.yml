@@ -51,6 +51,7 @@ jobs:
       - name: Reporting tests
         run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
 
+<<<<<<< HEAD
       # Legacy console characterization tests (Watchtower, MRD-253). Loads the
       # real ES5 console files into jsdom against recorded API responses in
       # dashboard/test/fixtures/api. Dev-only; the console has no build step.
@@ -59,6 +60,10 @@ jobs:
         run: |
           npm ci
           npm test
+=======
+      - name: Analytics tests
+        run: python -m pip install pytest && MRD_REQUIRE_BINARIES=1 python -m pytest analytics/tests -v
+>>>>>>> 145cf8f (Made slight edits to the evolution tests to be more in line with the assignment specifications)
 
       - name: ui-next typecheck
         working-directory: ui-next

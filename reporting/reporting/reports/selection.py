@@ -19,37 +19,109 @@ selection is deterministic run to run.
     New in this cycle.  Centralises the per-report run selection that had
     been duplicated into station_report and (via SQL) into db.py.
 
-Known limitation
-----------------
-``run_at`` is compared as text here (see ``_recency_key``).  For the
-timestamps the analytics job writes today -- ISO-8601, zero-padded, fixed
-width -- text order and time order are the same, so this is correct on
-all current data and on the seeded test store.  It is **not** correct for
-a run whose ``run_at`` was written in a different textual shape, e.g. a
-manual backfill stamped ``08/16/2021 06:00`` (day/month/year) rather than
-``2021-08-16T06:00:00``: that string sorts *before* the ISO stamps
-because ``'0' < '2'``, so a newer backfill can be mistaken for an older
-run.  This is the same text-vs-time hazard tracked for the SQL path in
-MRD-238; it is latent here until such a run appears in the store.
+MRD-250: Chronological comparison
+---------------------------------
+``run_at`` timestamps are normalised to canonical ISO-8601 text representation
+(see ``_recency_key``) so that time order and comparison key order are
+identical across both standard analytics output and off-format manual backfills
+(e.g. ``08/16/2021 06:00``).
 """
 from __future__ import annotations
 
+import datetime as _dt
 from typing import Dict, List, Optional, Sequence
 
 from ..db import Forecast
+
+_COMMON_FORMATS = (
+    # Month-first slashes (common North American / backfill, e.g. 08/16/2021 06:00)
+    "%m/%d/%Y %H:%M:%S",
+    "%m/%d/%Y %H:%M",
+    "%m/%d/%Y",
+    # Day-first slashes (UK / Canadian / international, e.g. 16/08/2021 06:00)
+    "%d/%m/%Y %H:%M:%S",
+    "%d/%m/%Y %H:%M",
+    "%d/%m/%Y",
+    # Year-first slashes
+    "%Y/%m/%d %H:%M:%S",
+    "%Y/%m/%d %H:%M",
+    "%Y/%m/%d",
+    # Hyphenated non-ISO variants
+    "%d-%m-%Y %H:%M:%S",
+    "%d-%m-%Y %H:%M",
+    "%d-%m-%Y",
+    "%m-%d-%Y %H:%M:%S",
+    "%m-%d-%Y %H:%M",
+    "%m-%d-%Y",
+    # Textual month names
+    "%d-%b-%Y %H:%M:%S",
+    "%d-%b-%Y %H:%M",
+    "%d-%b-%Y",
+    "%b %d, %Y %H:%M:%S",
+    "%b %d, %Y %H:%M",
+    "%b %d, %Y",
+    "%d %b %Y %H:%M:%S",
+    "%d %b %Y %H:%M",
+    "%d %b %Y",
+    # Dot-separated
+    "%Y.%m.%d %H:%M:%S",
+    "%Y.%m.%d %H:%M",
+    "%Y.%m.%d",
+    "%d.%m.%Y %H:%M:%S",
+    "%d.%m.%Y %H:%M",
+    "%d.%m.%Y",
+    # 2-digit year variants
+    "%m/%d/%y %H:%M:%S",
+    "%m/%d/%y %H:%M",
+    "%m/%d/%y",
+    "%d/%m/%y %H:%M:%S",
+    "%d/%m/%y %H:%M",
+    "%d/%m/%y",
+)
+
+
+def _parse_timestamp(s: str) -> Optional[_dt.datetime]:
+    """Parse a timestamp string into a datetime object."""
+    candidate = s
+    if candidate.endswith(("Z", "z")):
+        candidate = candidate[:-1] + "+00:00"
+    try:
+        return _dt.datetime.fromisoformat(candidate)
+    except ValueError:
+        pass
+
+    for fmt in _COMMON_FORMATS:
+        try:
+            return _dt.datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def _recency_key(run_at: Optional[str]) -> str:
     """Comparison key for ordering runs by recency.
 
-    The analytics job writes ``run_at`` as an ISO-8601 stamp, so the text
-    order of two stamps already matches their time order and we can order
-    on the normalised text directly without parsing a datetime.
-
-    (This is the seam the MRD-238 text-ordering hazard lives behind: for
-    an off-format backfill the text order and the time order diverge.)
+    Normalises ``run_at`` into a canonical ISO-8601 string so that text
+    ordering matches chronological time ordering, resolving the MRD-250
+    hazard where off-format backfills (e.g. '08/16/2021 06:00') sorted
+    before ISO stamps ('2021-08-16T06:00:00').
     """
-    return (run_at or "").strip()
+    if not run_at:
+        return ""
+    s = run_at.strip()
+    if not s:
+        return ""
+
+    dt = _parse_timestamp(s)
+    if dt is None:
+        return s
+
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(_dt.timezone.utc).replace(tzinfo=None)
+
+    if dt.microsecond:
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def current_forecast(forecasts: Sequence[Forecast]) -> Optional[Forecast]:

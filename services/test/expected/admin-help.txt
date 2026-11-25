@@ -1,0 +1,5 @@
+meridian admin
+  stations            list stations and record counts
+  coverage <stn>      per-year day counts for a station
+  suspect <stn> <yr>  count flagged readings
+  evict <stn> <yr>    drop the v2 cached summary after a backfill

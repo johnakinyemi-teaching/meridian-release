@@ -1,0 +1,925 @@
+{
+  "BRANTFRD": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 4
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "STUCKSW",
+        "doy": 140,
+        "message": "soil water held at 21.60 for 36 days from doy 140",
+        "severity": "warning",
+        "stnid": "BRANTFRD",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 177,
+        "message": "soil water held at 21.60 for 15 days from doy 177",
+        "severity": "warning",
+        "stnid": "BRANTFRD",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 219,
+        "message": "soil water held at 21.60 for 20 days from doy 219",
+        "severity": "warning",
+        "stnid": "BRANTFRD",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 241,
+        "message": "soil water held at 21.60 for 15 days from doy 241",
+        "severity": "warning",
+        "stnid": "BRANTFRD",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 118,
+        "message": "156 consecutive water-stressed days from doy 118",
+        "severity": "info",
+        "stnid": "BRANTFRD",
+        "year": 2025
+      }
+    ],
+    "warnings": 4
+  },
+  "CAMBRIDG": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 3
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "STUCKSW",
+        "doy": 145,
+        "message": "soil water held at 27.00 for 26 days from doy 145",
+        "severity": "warning",
+        "stnid": "CAMBRIDG",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 174,
+        "message": "soil water held at 27.00 for 13 days from doy 174",
+        "severity": "warning",
+        "stnid": "CAMBRIDG",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 203,
+        "message": "soil water held at 27.00 for 38 days from doy 203",
+        "severity": "warning",
+        "stnid": "CAMBRIDG",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 122,
+        "message": "152 consecutive water-stressed days from doy 122",
+        "severity": "info",
+        "stnid": "CAMBRIDG",
+        "year": 2025
+      }
+    ],
+    "warnings": 3
+  },
+  "GUELPH": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 6
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "STUCKSW",
+        "doy": 132,
+        "message": "soil water held at 24.75 for 12 days from doy 132",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 145,
+        "message": "soil water held at 24.75 for 15 days from doy 145",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 178,
+        "message": "soil water held at 24.75 for 18 days from doy 178",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 198,
+        "message": "soil water held at 24.75 for 18 days from doy 198",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 217,
+        "message": "soil water held at 24.75 for 15 days from doy 217",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 263,
+        "message": "soil water held at 24.75 for 10 days from doy 263",
+        "severity": "warning",
+        "stnid": "GUELPH",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 119,
+        "message": "155 consecutive water-stressed days from doy 119",
+        "severity": "info",
+        "stnid": "GUELPH",
+        "year": 2025
+      }
+    ],
+    "warnings": 6
+  },
+  "KITCHNER": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 5
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "STUCKSW",
+        "doy": 143,
+        "message": "soil water held at 22.05 for 22 days from doy 143",
+        "severity": "warning",
+        "stnid": "KITCHNER",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 183,
+        "message": "soil water held at 22.05 for 12 days from doy 183",
+        "severity": "warning",
+        "stnid": "KITCHNER",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 200,
+        "message": "soil water held at 22.05 for 19 days from doy 200",
+        "severity": "warning",
+        "stnid": "KITCHNER",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 227,
+        "message": "soil water held at 22.05 for 15 days from doy 227",
+        "severity": "warning",
+        "stnid": "KITCHNER",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 252,
+        "message": "soil water held at 22.05 for 10 days from doy 252",
+        "severity": "warning",
+        "stnid": "KITCHNER",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 116,
+        "message": "158 consecutive water-stressed days from doy 116",
+        "severity": "info",
+        "stnid": "KITCHNER",
+        "year": 2025
+      }
+    ],
+    "warnings": 5
+  },
+  "MILTON": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 4,
+      "warning:SWJUMP": 76
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "SWJUMP",
+        "doy": 101,
+        "message": "soil water stepped 3.99 (typical 0.10) into doy 101",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 102,
+        "message": "soil water stepped 2.81 (typical 0.10) into doy 102",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 103,
+        "message": "soil water stepped 7.07 (typical 0.10) into doy 103",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 104,
+        "message": "soil water stepped 4.72 (typical 0.10) into doy 104",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 105,
+        "message": "soil water stepped 3.80 (typical 0.10) into doy 105",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 107,
+        "message": "soil water stepped 4.36 (typical 0.10) into doy 107",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 108,
+        "message": "soil water stepped 5.07 (typical 0.10) into doy 108",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 109,
+        "message": "soil water stepped 3.74 (typical 0.10) into doy 109",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 110,
+        "message": "soil water stepped 4.10 (typical 0.10) into doy 110",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 111,
+        "message": "soil water stepped 4.54 (typical 0.10) into doy 111",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 112,
+        "message": "soil water stepped 2.73 (typical 0.10) into doy 112",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 113,
+        "message": "soil water stepped 3.16 (typical 0.10) into doy 113",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 114,
+        "message": "soil water stepped 2.67 (typical 0.10) into doy 114",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 115,
+        "message": "soil water stepped 2.00 (typical 0.10) into doy 115",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 116,
+        "message": "soil water stepped 2.20 (typical 0.10) into doy 116",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 117,
+        "message": "soil water stepped 2.38 (typical 0.10) into doy 117",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 118,
+        "message": "soil water stepped 1.57 (typical 0.10) into doy 118",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 119,
+        "message": "soil water stepped 1.96 (typical 0.10) into doy 119",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 120,
+        "message": "soil water stepped 1.82 (typical 0.10) into doy 120",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 121,
+        "message": "soil water stepped 1.78 (typical 0.10) into doy 121",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 122,
+        "message": "soil water stepped 0.87 (typical 0.10) into doy 122",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 123,
+        "message": "soil water stepped 2.04 (typical 0.10) into doy 123",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 124,
+        "message": "soil water stepped 1.22 (typical 0.10) into doy 124",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 125,
+        "message": "soil water stepped 1.80 (typical 0.10) into doy 125",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 126,
+        "message": "soil water stepped 5.03 (typical 0.10) into doy 126",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 127,
+        "message": "soil water stepped 2.36 (typical 0.10) into doy 127",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 128,
+        "message": "soil water stepped 2.56 (typical 0.10) into doy 128",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 129,
+        "message": "soil water stepped 0.63 (typical 0.10) into doy 129",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 132,
+        "message": "soil water stepped 1.70 (typical 0.10) into doy 132",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 143,
+        "message": "soil water stepped 4.87 (typical 0.10) into doy 143",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 144,
+        "message": "soil water stepped 2.81 (typical 0.10) into doy 144",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 145,
+        "message": "soil water stepped 1.50 (typical 0.10) into doy 145",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 154,
+        "message": "soil water stepped 3.51 (typical 0.10) into doy 154",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 155,
+        "message": "soil water stepped 3.51 (typical 0.10) into doy 155",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 173,
+        "message": "soil water stepped 9.88 (typical 0.10) into doy 173",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 174,
+        "message": "soil water stepped 4.13 (typical 0.10) into doy 174",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 175,
+        "message": "soil water stepped 4.53 (typical 0.10) into doy 175",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 176,
+        "message": "soil water stepped 1.22 (typical 0.10) into doy 176",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 185,
+        "message": "soil water stepped 5.12 (typical 0.10) into doy 185",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 186,
+        "message": "soil water stepped 2.24 (typical 0.10) into doy 186",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 187,
+        "message": "soil water stepped 2.88 (typical 0.10) into doy 187",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 200,
+        "message": "soil water stepped 3.97 (typical 0.10) into doy 200",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 201,
+        "message": "soil water stepped 5.75 (typical 0.10) into doy 201",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 202,
+        "message": "soil water stepped 4.86 (typical 0.10) into doy 202",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 203,
+        "message": "soil water stepped 3.51 (typical 0.10) into doy 203",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 204,
+        "message": "soil water stepped 1.35 (typical 0.10) into doy 204",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 205,
+        "message": "soil water stepped 8.66 (typical 0.10) into doy 205",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 206,
+        "message": "soil water stepped 4.87 (typical 0.10) into doy 206",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 207,
+        "message": "soil water stepped 2.80 (typical 0.10) into doy 207",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 208,
+        "message": "soil water stepped 1.42 (typical 0.10) into doy 208",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 209,
+        "message": "soil water stepped 4.39 (typical 0.10) into doy 209",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 210,
+        "message": "soil water stepped 0.78 (typical 0.10) into doy 210",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 211,
+        "message": "soil water stepped 3.21 (typical 0.10) into doy 211",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 212,
+        "message": "soil water stepped 4.44 (typical 0.10) into doy 212",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 213,
+        "message": "soil water stepped 3.89 (typical 0.10) into doy 213",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 214,
+        "message": "soil water stepped 3.28 (typical 0.10) into doy 214",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 221,
+        "message": "soil water stepped 1.19 (typical 0.10) into doy 221",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 222,
+        "message": "soil water stepped 1.19 (typical 0.10) into doy 222",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 232,
+        "message": "soil water stepped 4.27 (typical 0.10) into doy 232",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 233,
+        "message": "soil water stepped 2.77 (typical 0.10) into doy 233",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 234,
+        "message": "soil water stepped 1.50 (typical 0.10) into doy 234",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 255,
+        "message": "soil water stepped 3.05 (typical 0.10) into doy 255",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 256,
+        "message": "soil water stepped 3.19 (typical 0.10) into doy 256",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 257,
+        "message": "soil water stepped 2.88 (typical 0.10) into doy 257",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 258,
+        "message": "soil water stepped 1.61 (typical 0.10) into doy 258",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 259,
+        "message": "soil water stepped 1.75 (typical 0.10) into doy 259",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 263,
+        "message": "soil water stepped 5.19 (typical 0.10) into doy 263",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 264,
+        "message": "soil water stepped 1.98 (typical 0.10) into doy 264",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 265,
+        "message": "soil water stepped 0.73 (typical 0.10) into doy 265",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 266,
+        "message": "soil water stepped 5.06 (typical 0.10) into doy 266",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 268,
+        "message": "soil water stepped 1.80 (typical 0.10) into doy 268",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 269,
+        "message": "soil water stepped 1.60 (typical 0.10) into doy 269",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 270,
+        "message": "soil water stepped 2.41 (typical 0.10) into doy 270",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 271,
+        "message": "soil water stepped 1.19 (typical 0.10) into doy 271",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 272,
+        "message": "soil water stepped 0.76 (typical 0.10) into doy 272",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "SWJUMP",
+        "doy": 273,
+        "message": "soil water stepped 1.32 (typical 0.10) into doy 273",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 155,
+        "message": "soil water held at 21.38 for 18 days from doy 155",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 187,
+        "message": "soil water held at 21.38 for 13 days from doy 187",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 222,
+        "message": "soil water held at 21.38 for 10 days from doy 222",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 243,
+        "message": "soil water held at 21.38 for 12 days from doy 243",
+        "severity": "warning",
+        "stnid": "MILTON",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 115,
+        "message": "159 consecutive water-stressed days from doy 115",
+        "severity": "info",
+        "stnid": "MILTON",
+        "year": 2025
+      }
+    ],
+    "warnings": 80
+  },
+  "WATERLOO": {
+    "clean": false,
+    "counts": {
+      "info:STRESSRUN": 1,
+      "warning:STUCKSW": 3
+    },
+    "errors": 0,
+    "table": [
+      {
+        "code": "STUCKSW",
+        "doy": 144,
+        "message": "soil water held at 21.00 for 10 days from doy 144",
+        "severity": "warning",
+        "stnid": "WATERLOO",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 200,
+        "message": "soil water held at 21.00 for 16 days from doy 200",
+        "severity": "warning",
+        "stnid": "WATERLOO",
+        "year": 2025
+      },
+      {
+        "code": "STUCKSW",
+        "doy": 220,
+        "message": "soil water held at 21.00 for 19 days from doy 220",
+        "severity": "warning",
+        "stnid": "WATERLOO",
+        "year": 2025
+      },
+      {
+        "code": "STRESSRUN",
+        "doy": 114,
+        "message": "160 consecutive water-stressed days from doy 114",
+        "severity": "info",
+        "stnid": "WATERLOO",
+        "year": 2025
+      }
+    ],
+    "warnings": 3
+  }
+}

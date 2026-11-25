@@ -26,7 +26,7 @@ import os
 import subprocess
 from typing import List, Optional
 
-from . import aggregate, deck, parse, qc
+from . import aggregate, deck, outputqc, parse, qc
 from .config import Config, DEFAULT
 from .errors import ModelRunError
 from .results import ForecastResult, ModelInputSpec, RunArtifacts, SeasonSummary
@@ -125,17 +125,24 @@ def build_spec(store: Store, stnid: str, year: int) -> ModelInputSpec:
 # ==========================================================================
 # SEAM WIRING: RunArtifacts -> (Archive) -> stored ForecastResult
 # ==========================================================================
-def _absorb(store: Store, artifacts: RunArtifacts, run_at: str):
-    """Archive side of the seam: parse -> summarise -> persist.
+def _absorb(store: Store, artifacts: RunArtifacts, run_at: str,
+            config: Config = DEFAULT):
+    """Archive side of the seam: parse -> summarise -> persist -> output QC.
 
     Takes nothing but the RunArtifacts (and the store to write into).  It
     is the mirror of NightshiftRun: everything here is Archive code, and
     it never looks at decks, scratch dirs or the model binary.
+
+    Output QC (MRD-246) runs AFTER the save and is advisory: it logs what
+    anomaly2 finds and never raises, so it cannot change what is
+    persisted or stop the run.  The report is ``None`` when output QC is
+    disabled or the scan itself failed.
     """
     result: ForecastResult = parse.parse_artifacts(artifacts, run_at=run_at)
     summary: SeasonSummary = aggregate.summarize_result(result)
     store.save_result(result, run_at=run_at)
-    return result, summary
+    report = outputqc.scan(result) if config.output_qc_enabled else None
+    return result, summary, report
 
 
 def run_station_year(store: Store, stnid: str, year: int,
@@ -145,7 +152,8 @@ def run_station_year(store: Store, stnid: str, year: int,
 
     Returns the legacy result dict so run_forecast.py and older callers
     keep working; the typed ForecastResult and SeasonSummary are attached
-    under 'result' and 'summary' keys for newer callers.
+    under 'result' and 'summary' keys for newer callers, and the advisory
+    output-QC report (MRD-246) under 'output_qc'.
     """
     if config is None:
         config = Config(keep_scratch=True) if keep_scratch else DEFAULT
@@ -158,7 +166,8 @@ def run_station_year(store: Store, stnid: str, year: int,
     with NightshiftRun(spec, config) as artifacts:
         # ==== SEAM: hand RunArtifacts to Archive ========================
         run_at = _dt.datetime.now().isoformat(timespec="seconds")
-        result, summary = _absorb(store, artifacts, run_at)
+        result, summary, output_qc = _absorb(store, artifacts, run_at,
+                                             config)
         # ================================================================
         deck_days = artifacts.deck_days
 
@@ -168,6 +177,8 @@ def run_station_year(store: Store, stnid: str, year: int,
     legacy["result"] = result
     legacy["summary"] = summary
     legacy["dropped_days"] = result.dropped_days
+    # Advisory anomaly2 verdict (MRD-246): an AnomalyReport, or None.
+    legacy["output_qc"] = output_qc
     return legacy
 
 

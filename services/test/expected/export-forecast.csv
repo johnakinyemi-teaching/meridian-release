@@ -1,0 +1,5 @@
+stnid,year,yield_t,ndays,model,run_at
+GUELPH,2024,5.512,172,cropmod V2.2,2025-10-30T02:14:09
+GUELPH,2025,5.951,174,cropmod V2.3,2026-10-27T14:28:24
+KITCHNER,2025,6.138,174,cropmod V2.3,2026-10-27T14:28:24
+MILTON,2025,5.928,174,"cropmod ""V2,3"" \ test",2026-10-27T14:28:24

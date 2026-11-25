@@ -48,16 +48,24 @@ jobs:
       - name: Reporting tests
         run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
 
+      # Legacy console characterization tests (Watchtower, MRD-253). Loads the
+      # real ES5 console files into jsdom against recorded API responses in
+      # dashboard/test/fixtures/api. Dev-only; the console has no build step.
+      - name: Dashboard tests
+        working-directory: dashboard/test
+        run: |
+          npm ci
+          npm test
+
       - name: ui-next typecheck
         working-directory: ui-next
         run: |
           npm ci
           npm run typecheck
 
-      # ui-next's `npm test` is a stub that prints a TODO and exits 0, so it is
-      # not run here: a command that exits without running anything must not be
-      # able to turn this job green. When Frontier stands the runner up, replace
-      # this step with `npm test`.
+      - name: ui-next tests
+        working-directory: ui-next
+        run: npm test
 
       # ---- the pipeline, and the oracle --------------------------------
       - name: Run the pipeline
@@ -81,6 +89,17 @@ jobs:
             echo "pull request and ask for the oracle value to be updated."
             exit 1
           fi
+
+      # ---- services (Relay) ------------------------------------------
+      # After the oracle check on purpose: a failure here can never hide the
+      # oracle line or skip another subsystem's steps. The tests build their
+      # own store with the sqlite3 CLI, so they do not read the pipeline's
+      # data.
+      - name: Services tests
+        timeout-minutes: 10
+        run: |
+          command -v sqlite3 >/dev/null || { sudo apt-get update && sudo apt-get install -y sqlite3; }
+          sh services/test.sh
 
       - name: Keep the logs
         if: always()

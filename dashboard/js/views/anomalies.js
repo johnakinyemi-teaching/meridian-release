@@ -19,6 +19,7 @@ window.Meridian.Views.Anomalies = (function ($) {
 
     var Dom = window.Meridian.Dom;
     var Fmt = window.Meridian.Fmt;
+    var Forecast = window.Meridian.Forecast;
     var State = window.Meridian.State;
     var Q = window.Meridian.Quality;
 
@@ -77,7 +78,7 @@ window.Meridian.Views.Anomalies = (function ($) {
                 for (i = 0; i < rows.length; i++) {
                     if (Number(rows[i].year) === Number(yr)) { have = true; break; }
                 }
-                if (!have) { yr = rows[rows.length - 1].year; }
+                if (!have) { yr = Forecast.currentRun(rows).year; }
                 $('#an-year').val(yr);
                 if (autoRun) { run(stn, yr); }
             }

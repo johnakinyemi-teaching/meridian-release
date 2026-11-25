@@ -59,7 +59,7 @@ def test_contract_example_record_is_44_chars_and_decodes():
 
 def test_contract_truncation_example_still_parses():
     #last 0 of the final 0.000 will be removed
-    line = ROW[:-1]                   
+    line = ROW[:-1]
     assert len(line) == 43
     assert parse._daily(line) == DailyRow(150, 95.33, 3.669, 0.0, 0.0, 0.0)
 
@@ -68,7 +68,7 @@ def test_contract_run_together_example_is_misread_as_sw_zero():
     line = " 15010000.00   3.669   0.000     0.0   0.000"
     row = parse._daily(line)
     #Not 10000.00
-    assert row is not None and row.sw == 0.0    
+    assert row is not None and row.sw == 0.0
 
 
 def test_contract_asterisk_field_is_dropped_and_counted():
@@ -77,13 +77,13 @@ def test_contract_asterisk_field_is_dropped_and_counted():
     assert r.dropped_days == 1 and r.parsed_days == 1
 
 
-#3 the missing-header limitation 
+#3 the missing-header limitation
 def test_missing_header_loses_first_day_without_counting_it_as_dropped():
     r = parse.parse_lines([BANNER, ROW, ROW.replace("150", "151"), "YIELD      5.951"])
     #The lost day is not counted
-    assert r.dropped_days == 0        
-    #Day 150 is gone    
-    assert r.parsed_days == 1             
+    assert r.dropped_days == 0
+    #Day 150 is gone
+    assert r.parsed_days == 1
     assert r.ndays == 2 and r.days_match is False
 
 

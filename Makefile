@@ -3,12 +3,16 @@
 # whatever its team used at the time. This Makefile just calls them
 # in the right order.
 
-.PHONY: all model ingest services dashboard clean run
+.PHONY: all model ingest services dashboard clean run test
 
 all: model ingest services
 
 model:
 	$(MAKE) -C model
+
+test:
+	$(MAKE) -C model test
+	$(MAKE) -C ingest test
 
 ingest:
 	$(MAKE) -C ingest

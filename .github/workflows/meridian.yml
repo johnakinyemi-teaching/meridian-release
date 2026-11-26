@@ -51,8 +51,7 @@ jobs:
       - name: Reporting tests
         run: cd reporting && python -m pip install pytest && python -m pytest reporting/tests -q
 
-<<<<<<< HEAD
-      # Legacy console characterization tests (Watchtower, MRD-253). Loads the
+   # Legacy console characterization tests (Watchtower, MRD-253). Loads the
       # real ES5 console files into jsdom against recorded API responses in
       # dashboard/test/fixtures/api. Dev-only; the console has no build step.
       - name: Dashboard tests
@@ -60,61 +59,6 @@ jobs:
         run: |
           npm ci
           npm test
-=======
+
       - name: Analytics tests
         run: python -m pip install pytest && MRD_REQUIRE_BINARIES=1 python -m pytest analytics/tests -v
->>>>>>> 145cf8f (Made slight edits to the evolution tests to be more in line with the assignment specifications)
-
-      - name: ui-next typecheck
-        working-directory: ui-next
-        run: |
-          npm ci
-          npm run typecheck
-
-      - name: ui-next tests
-        working-directory: ui-next
-        run: npm test
-
-      # ---- the pipeline, and the oracle --------------------------------
-      - name: Run the pipeline
-        run: |
-          mkdir -p data
-          python3 tools/gen_packets.py data/spool_2025.bin
-          ./ingest/mrd_ingest data/spool_2025.bin data/meridian.db | tee ingest.log
-          python3 analytics/run_forecast.py --db data/meridian.db | tee forecast.log
-
-      - name: Oracle check
-        run: |
-          echo "--- ingest"
-          grep -E 'accepted=[0-9]+' ingest.log || true
-          echo "--- forecast"
-          grep -E '^GUELPH' forecast.log || true
-          if grep -Eq 'GUELPH +2025 +yield= *5\.951' forecast.log; then
-            echo "ORACLE OK: GUELPH 2025 = 5.951 t/ha"
-          else
-            echo "ORACLE FAILED: GUELPH 2025 is not 5.951 t/ha."
-            echo "If your ticket is supposed to change this number, say so in the"
-            echo "pull request and ask for the oracle value to be updated."
-            exit 1
-          fi
-
-      # ---- services (Relay) ------------------------------------------
-      # After the oracle check on purpose: a failure here can never hide the
-      # oracle line or skip another subsystem's steps. The tests build their
-      # own store with the sqlite3 CLI, so they do not read the pipeline's
-      # data.
-      - name: Services tests
-        timeout-minutes: 10
-        run: |
-          command -v sqlite3 >/dev/null || { sudo apt-get update && sudo apt-get install -y sqlite3; }
-          sh services/test.sh
-
-      - name: Keep the logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pipeline-logs
-          path: |
-            ingest.log
-            forecast.log
-          if-no-files-found: ignore

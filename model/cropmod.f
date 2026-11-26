@@ -22,7 +22,7 @@ C     nitrogen path and MERIDIAN.OUT is the historical file unchanged.
       PARAMETER (MAXDAY = 366)
 
       CHARACTER*8  STNID
-      INTEGER      IYEAR, NDAYS, I, IOS
+      INTEGER      IYEAR, NDAYS, I, IOS, IPREV
       REAL         XLAT, AWC, RDEPTH
 
       INTEGER      IDOY(MAXDAY)
@@ -47,8 +47,9 @@ C     nitrogen path and MERIDIAN.OUT is the historical file unchanged.
       READ (10, 901) AWC, RDEPTH
 
 C-----Daily weather records.  Deck is terminated by a -1 in the DOY
-C     field.  Records are assumed to be in ascending DOY order; this
-C     is NOT checked (see ticket MRD-118).
+C     field.  Records must be in strictly ascending DOY order; this
+C     is checked (MRD-118) and the run stops with code 5 if not.
+      IPREV = -1
       NDAYS = 0
    10 CONTINUE
          IF (NDAYS .GE. MAXDAY) GO TO 20
@@ -56,6 +57,13 @@ C     is NOT checked (see ticket MRD-118).
      &                              RAIN(NDAYS+1), SRAD(NDAYS+1)
          IF (IOS .NE. 0) GO TO 20
          IF (I .LT. 0) GO TO 20
+C     MRD-118: reject non-ascending or duplicate DOY.
+         IF (I .LE. IPREV) THEN
+            WRITE (*,*) 'CROPMOD: deck out of order at record ',
+     &                  NDAYS+1, ' DOY ', I, ' follows DOY ', IPREV
+            STOP 5
+         END IF
+         IPREV = I
          NDAYS = NDAYS + 1
          IDOY(NDAYS) = I
       GO TO 10

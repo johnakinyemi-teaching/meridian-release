@@ -60,6 +60,9 @@ jobs:
           npm ci
           npm test
 
+      - name: Analytics tests
+        run: python -m pip install pytest && MRD_REQUIRE_BINARIES=1 python -m pytest analytics/tests -v
+
       - name: ui-next typecheck
         working-directory: ui-next
         run: |

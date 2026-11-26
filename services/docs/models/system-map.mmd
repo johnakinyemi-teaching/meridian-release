@@ -1,0 +1,31 @@
+flowchart LR
+
+    Field["Field Station Network"]
+    Spool[("Spool File<br/>Binary")]
+
+    Ingest["«component»<br/>ingest/<br/>C"]
+    Analytics["«component»<br/>analytics/<br/>Python"]
+    Model["«component»<br/>model/<br/>FORTRAN 77 + F90"]
+    Services["«component»<br/>services/<br/>Java"]
+    Dashboard["«component»<br/>dashboard/<br/>JavaScript / jQuery"]
+    UINext["«component»<br/>ui-next/<br/>TypeScript / React"]
+    Reporting["«component»<br/>reporting/<br/>Python"]
+
+    DB[("SQLite Database<br/>reading<br/>forecast<br/>forecast_daily")]
+
+    Field -->|"field frames"| Spool
+    Spool -->|"spool frames"| Ingest
+    Ingest -->|"INSERT reading"| DB
+
+    Analytics -->|"MERIDIAN.DAT"| Model
+    Model -->|"MERIDIAN.OUT"| Analytics
+    Analytics -->|"INSERT forecast"| DB
+
+    Dashboard -->|"GET /api/*"| Services
+    UINext -->|"GET /api/*"| Services
+    Services -->|"SQLite driver (JDBC), in-process"| DB
+
+    DB -->|"read-only SQLite"| Reporting
+
+    Cron1["cron"] -->|"start"| Ingest
+    Cron2["cron"] -->|"start"| Analytics

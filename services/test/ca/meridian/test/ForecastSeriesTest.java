@@ -88,6 +88,14 @@ final class ForecastSeriesTest {
                 api.send("OPTIONS", "/api/forecast?station=GUELPH"), "forecast-guelph.json");
         c.passthrough("a path that only starts with the route name reaches it",
                 api.get("/api/forecastX?station=GUELPH"), "forecast-guelph.json");
+
+        // %47 is the letter G, so %47UELPH decoded would be GUELPH. The encoded
+        // ids in the no-match list above (GU%27ELPH, %20GUELPH) answer [] whether
+        // or not the station is decoded, so only this id fails if decoding is
+        // ever switched on (MRD-166).
+        c.section("/api/forecast: an encoded letter in the station is not decoded");
+        c.json("station=%47UELPH is not GUELPH",
+                api.get("/api/forecast?station=%47UELPH"), "[]");
     }
 
     private static void series(Checks c, Http api) throws IOException {
@@ -221,6 +229,13 @@ final class ForecastSeriesTest {
             c.passthrough("and GUELPH's answer does not change because that row exists",
                     onOdd.get("/api/forecast?station=GUELPH"), "forecast-guelph.json");
         }
+
+        // Binding keeps a quote from ending the SQL text, but the station is
+        // still only safe while the SQL compares it with "=". Under a pattern
+        // operator such as GLOB, "GU*" would match GUELPH with no quote at all.
+        c.section("MRD-166: a wildcard in the station is text, not a pattern");
+        c.json("forecast, station=GU*: no station has that id, GUELPH is not matched",
+                api.get("/api/forecast?station=GU*"), "[]");
     }
 
     /** What the two routes answer when the store itself is unusable. */

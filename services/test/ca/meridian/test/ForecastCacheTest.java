@@ -44,9 +44,11 @@ final class ForecastCacheTest {
         staleAfterABackfill(c, fixture.copy());
         evictIsPerStation(c, fixture.copy());
         anUnreadableTokenFallsBackToTtl(c, fixture.copy());
+        leftoverEvictionNoteDoesNotDisableCache(c, fixture.copy());
         theMarksDirectory(c, fixture.copy());
         theCacheItself(c, fixture.copy());
         evictArguments(c, fixture.copy());
+        evictWriteFailure(c, fixture.copy());
         ttlStillRefreshes(c, fixture.copy());
     }
 
@@ -148,6 +150,28 @@ final class ForecastCacheTest {
                     api.get(V2_GUELPH), "v2-forecast-guelph-fresh.json");
         }
     }
+
+/**
+ * An old eviction note must not disable caching.
+ */
+private static void leftoverEvictionNoteDoesNotDisableCache(
+        Checks c, Store store) throws IOException {
+
+    c.section("an old eviction note does not disable caching");
+
+    Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2025");
+    c.same("evict before the server starts: exit status", 0, evict.exit);
+
+    try (Http api = Http.serve(store)) {
+        c.recorded("first read: two runs, summary of two",
+                api.get(V2_GUELPH), "v2-forecast-guelph.json");
+
+        store.sql(NEW_RUN);
+
+        c.recorded("old note does not disable the cached summary",
+                api.get(V2_GUELPH), "v2-forecast-guelph-stale.json");
+    }
+}
 
     /** The eviction directory keeps itself out of git, and rejects non-ids. */
     private static void theMarksDirectory(Checks c, Store store) throws IOException {
@@ -255,6 +279,22 @@ final class ForecastCacheTest {
         c.same("no year: exit status", 2, noYear.exit);
         c.same("no year: usage on stderr", "usage: evict <station> <year>\n", noYear.err);
         c.same("no year: nothing on stdout", "", noYear.out);
+    }
+
+    /** Evict must report failure if it cannot write an eviction note. */
+    private static void evictWriteFailure(Checks c, Store store) throws IOException {
+        c.section("admin evict: cannot write an eviction note");
+
+        // A file in place of the directory prevents writing the note,
+        // regardless of the permissions of the user running the tests.
+        Files.createFile(Paths.get(store.path() + ".evict"));
+
+        Admin.Run evict = Admin.run(store, "evict", "GUELPH", "2026");
+        c.same("failed eviction: exit status", 1, evict.exit);
+        c.isTrue("failed eviction: I/O error on stderr",
+                evict.err.contains("java.nio.file.FileAlreadyExistsException: " + store.path() + ".evict"),
+                "stderr=[" + evict.err + "]");
+        c.same("failed eviction: nothing on stdout", "", evict.out);
     }
 
     /** Without any evict, the TTL alone refreshes the summary. */

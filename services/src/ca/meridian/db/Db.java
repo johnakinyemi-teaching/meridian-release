@@ -102,9 +102,9 @@ public final class Db {
                 throw new IOException("sqlite3 exited " + resultCode(e));
             }
         } catch (LinkageError driverNotLoaded) {
-            // The driver could not load SQLite itself, for example because
-            // the temporary directory it unpacks it into cannot be written
-            // or does not allow execution. The store cannot be opened.
+            // The driver could not load SQLite itself, for example because the
+            // temporary directory it unpacks it into is unwritable or noexec.
+            DbLog.warn(DbLog.DRIVER_NOT_LOADED, driverNotLoaded);
             throw new IOException("sqlite3 exited 1");
         }
     }
@@ -118,10 +118,10 @@ public final class Db {
         try {
             return DriverManager.getConnection("jdbc:sqlite:" + dbPath, settings);
         } catch (SQLException cannotOpen) {
-            // "unable to open database" was exit status 1 whatever the
-            // reason: a missing directory, a directory in the file's place,
-            // a file this user may not read. SQLite's own code for it (14)
-            // never reached a caller.
+            // "unable to open database" was exit status 1 whatever the reason: a
+            // missing directory, a directory in the file's place, an unreadable
+            // file. SQLite's own code for it (14) never reached a caller.
+            DbLog.warnIfTheDriverFailed(cannotOpen);
             throw new SQLException(cannotOpen.getMessage(), cannotOpen.getSQLState(), 1, cannotOpen);
         }
     }

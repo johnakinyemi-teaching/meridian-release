@@ -1,0 +1,24 @@
+%%{init: {"sequence": {"mirrorActors": false, "wrap": true}}}%%
+sequenceDiagram
+    autonumber
+
+    participant DB as SQLite meridian.db
+    participant Orch as forecast orchestrator
+    participant Model as cropmod
+    participant Parser as parser
+    participant Store as Store
+    participant API as Java API
+    participant Browser as browser
+
+    DB-->>Orch: station-year keys<br/>SQLite rows
+    DB-->>Orch: weather readings<br/>doy, tmax, tmin, rain, srad
+    Orch->>Model: MERIDIAN.DAT<br/>fixed-width text in scratch dir
+    Model-->>Parser: MERIDIAN.OUT<br/>fixed-width text
+    Parser->>Store: ForecastResult<br/>Python object
+    Store->>DB: forecast + forecast_daily<br/>SQL rows in one transaction
+    Browser->>API: HTTP GET<br/>/api/forecast
+    API->>DB: SQL via SQLite JDBC<br/>in-process forecast query
+    DB-->>API: JDBC ResultSet<br/>query rows
+    API->>API: Db converts rows to JSON
+    API-->>Browser: HTTP JSON body<br/>forecast rows
+    Browser->>Browser: JS forecast data<br/>Yield (t/ha)
